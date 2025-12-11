@@ -1,0 +1,304 @@
+{
+  "createdAt": "2025-06-04T16:40:52.303Z",
+  "updatedAt": "2025-07-08T15:58:17.383Z",
+  "id": "Q1TP2L8tIGRyBfv9",
+  "name": "SFTP",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8b44fd93-d048-4286-8b61-3e039811d3a8",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "=xlsx",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1580,
+        60
+      ],
+      "id": "f7beb112-2c1a-4982-b79d-2bc5b5e7bd70",
+      "name": "If",
+      "notesInFlow": true,
+      "notes": "Find Excel Documents"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "File",
+              "inputDataFieldName": "={{ Object.keys($binary)[0] }}"
+            },
+            {
+              "name": "submittedBy",
+              "value": "paul@viprsolutions.com"
+            },
+            {
+              "name": "tenantCode",
+              "value": "viprsolutions"
+            },
+            {
+              "name": "Password"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c13f2f3a-6292-4aac-a52f-59e2482f1171",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -880,
+        40
+      ],
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "onError": "continueErrorOutput",
+      "notes": "Post file to the Portal API"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2280,
+        60
+      ],
+      "id": "a0fe2462-fbfd-4af2-a988-1d05fb1bdff5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "list",
+        "path": "/data/"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -1920,
+        60
+      ],
+      "id": "4b101e18-1581-45fe-8fc7-6ecfe8decd36",
+      "name": "SFTP",
+      "notesInFlow": true,
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      },
+      "notes": "Get a list of files"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "path": "={{ $json.path }}"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        40
+      ],
+      "id": "de16f305-2bea-4861-8f87-63ca17672ff0",
+      "name": "SFTP Download",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      },
+      "notes": "Download Excel files"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": false, \n\"umr\": \"28A6D93C2D1C3\", \n\"tenantCode\": \"viprsolutions\", \n\"submittedBy\": \"paul@viprsolutions.com\", \n\"worksheets\": [{        \n    \"name\": \"February 2023 Property\",      \n    \"riskCode\": null,        \n    \"isAuto\": true,        \n    \"bordereauxTypeId\": 2,\n    \"isReportingPeriodTakenFromBordereaux\": false,        \n    \"reportingPeriodStart\": \"2023-03-01 00:00:00\",\n    \"reportingPeriodEnd\": \"2023-03-31 00:00:00\" \n}] \n} ",
+        "options": {}
+      },
+      "id": "8d31850a-1ed1-471d-96f9-1d52beb000dd",
+      "name": "POST metedata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -520,
+        20
+      ],
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "onError": "continueErrorOutput",
+      "notes": "Post metadata to the Portal API"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "rename",
+        "oldPath": "={{ $('SFTP Download').item.json.path }}",
+        "newPath": "=/data/archive/{{ $now }}-{{ $('SFTP').item.json.name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "560c5bbb-53f8-483e-adc7-36a8df651bea",
+      "name": "SFTP Archive File",
+      "notesInFlow": true,
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      },
+      "notes": "Move the file to the archive folder"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "SFTP Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "SFTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SFTP": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SFTP Download": {
+      "main": [
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata": {
+      "main": [
+        [
+          {
+            "node": "SFTP Archive File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "037b0173-ff29-47b0-ba95-f0d69a9f53ca",
+  "triggerCount": 1,
+  "tags": []
+}

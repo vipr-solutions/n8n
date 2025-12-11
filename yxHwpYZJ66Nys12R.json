@@ -1,0 +1,50 @@
+{
+  "createdAt": "2025-11-26T13:41:49.779Z",
+  "updatedAt": "2025-11-26T13:43:42.545Z",
+  "id": "yxHwpYZJ66Nys12R",
+  "name": "Intarga Scheduled Emails",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "sender": " training@viprsolutions.com"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        -340,
+        0
+      ],
+      "id": "0d24c9d8-f263-45c1-8a5d-35167c8f0e91",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "vjJuLCQY7Dd1c2un",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "e837a7d3-f187-440a-8eb6-e3cb04c9cf98",
+  "triggerCount": 0,
+  "tags": []
+}

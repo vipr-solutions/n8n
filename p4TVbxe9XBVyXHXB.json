@@ -1,0 +1,89 @@
+{
+  "createdAt": "2025-11-26T13:26:12.922Z",
+  "updatedAt": "2025-11-28T11:14:36.780Z",
+  "id": "p4TVbxe9XBVyXHXB",
+  "name": "My workflow 8",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Bdx Upload",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -180,
+        -80
+      ],
+      "id": "b1562e97-75a6-4ad2-9173-1850439bd6d3",
+      "name": "Upload bordereau",
+      "webhookId": "30b5406c-ab9e-42bd-8b69-23ae36b409a1"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -260
+      ],
+      "id": "c44b056a-4695-4305-9a67-e494df52663c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import pandas as pd\nfrom pathlib import Path\n\n\n# ----------------------------------------------------------\n# 1. Identify the header row\n# ----------------------------------------------------------\ndef find_header_row(df, min_non_empty=9):\n    \"\"\"\n    Header row = first row with at least `min_non_empty` populated cells.\n    \"\"\"\n    df = df.dropna(axis=1, how=\"all\")  # remove empty columns\n\n    for idx, row in df.iterrows():\n        if row.count() >= min_non_empty:\n            return idx\n\n    return None  # nothing found\n\n\n# ----------------------------------------------------------\n# 2. Load sheet using inferred header row\n# ----------------------------------------------------------\ndef load_sheet_with_inferred_header(xl, sheet_name, min_non_empty=9):\n    raw = xl.parse(sheet_name=sheet_name, header=None, dtype=object)\n    raw = raw.dropna(axis=1, how=\"all\")\n\n    header_row_idx = find_header_row(raw, min_non_empty=min_non_empty)\n\n    if header_row_idx is None:\n        # Fallback: treat all rows as data\n        df = raw.copy()\n        df.columns = [f\"col_{i}\" for i in range(len(df.columns))]\n        header_key = tuple(df.columns)\n        return header_key, df\n\n    # Normalise header text\n    header_row = raw.iloc[header_row_idx].fillna(\"\")\n    headers = (\n        header_row.astype(str)\n        .str.strip()\n        .str.lower()\n        .tolist()\n    )\n\n    # Remaining rows = data\n    df = raw.iloc[header_row_idx + 1:].copy()\n    df.columns = headers\n    df = df.dropna(how=\"all\")\n\n    header_key = tuple(headers)\n    return header_key, df\n\n\n# ----------------------------------------------------------\n# 3. Consolidate sheets with matching headers\n# ----------------------------------------------------------\ndef consolidate_excel(input_path, output_path=None, min_non_empty=9):\n    \"\"\"\n    - Identify header rows\n    - Group sheets by matching headers\n    - Consolidate matching groups into single sheets\n    - Preserve standalone sheets\n    - Add a summary sheet\n    \"\"\"\n    input_path = Path(input_path)\n\n    if output_path is None:\n        output_path = input_path.with_name(input_path.stem + \"_consolidated.xlsx\")\n\n    xl = pd.ExcelFile(input_path)\n    groups = {}  # header_key -> list of (sheet_name, df)\n\n    for sheet in xl.sheet_names:\n        header_key, df = load_sheet_with_inferred_header(\n            xl, sheet_name=sheet, min_non_empty=min_non_empty\n        )\n        groups.setdefault(header_key, []).append((sheet, df))\n\n    # Write the output workbook\n    with pd.ExcelWriter(output_path, engine=\"openpyxl\") as writer:\n        combined_index = 1\n\n        for header_key, sheet_list in groups.items():\n            if len(sheet_list) == 1:\n                # Keep separate\n                sheet_name, df = sheet_list[0]\n                df.to_excel(writer, sheet_name=sheet_name, index=False)\n            else:\n                # Consolidate group into one sheet\n                combined = pd.concat([df for _, df in sheet_list], ignore_index=True)\n                base_name = sheet_list[0][0][:20]\n                combined_name = f\"Combined_{combined_index}_{base_name}\"\n                combined_index += 1\n                combined.to_excel(writer, sheet_name=combined_name, index=False)\n\n        # Summary sheet\n        summary = []\n        for header_key, sheet_list in groups.items():\n            summary.append({\n                \"header_key\": \" | \".join(header_key),\n                \"sheets_in_group\": \", \".join([s for s, _ in sheet_list]),\n                \"number_of_sheets\": len(sheet_list),\n            })\n\n        pd.DataFrame(summary).to_excel(writer, sheet_name=\"Summary\", index=False)\n\n    print(f\"Output written to: {output_path}\")\n    return output_path\n\n\nif __name__ == \"__main__\":\n    # Example usage:\n    consolidate_excel(\"input.xlsx\")\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        -260
+      ],
+      "id": "ed3cfef0-05cc-4f60-8022-c8de64867484",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Upload bordereau": {
+      "main": [
+        []
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "0012d85e-209a-436f-b8a2-5a61c81ecb11",
+  "triggerCount": 0,
+  "tags": []
+}

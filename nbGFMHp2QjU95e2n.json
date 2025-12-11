@@ -1,0 +1,138 @@
+{
+  "createdAt": "2025-12-01T10:10:31.782Z",
+  "updatedAt": "2025-12-01T17:20:02.167Z",
+  "id": "nbGFMHp2QjU95e2n",
+  "name": "Consolidate DRAFT 1",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Import xlsx library (built into n8n)\nconst XLSX = require('xlsx');\n\n// Get the input item from the form trigger\nconst item = $input.item;\n\n// 1) Make sure we actually have the uploaded file\nif (!item.binary || !item.binary.File) {\n  throw new Error('Expected uploaded file in item.binary.File from the form trigger');\n}\n\nconst fileBinary = item.binary.File;\n\nif (!fileBinary.data) {\n  throw new Error('item.binary.File.data (base64) is missing');\n}\n\n// 2) Convert base64 -> Buffer\nconst buffer = Buffer.from(fileBinary.data, 'base64');\n\n// 3) Read the workbook\nconst workbook = XLSX.read(buffer, { type: 'buffer' });\n\nconsole.log(`Sheets: ${workbook.SheetNames.join(', ')}`);\n\n// 4) Flatten only sheets whose headers match exactly\nconst outputItems = [];\n\nlet masterHeaders = null;\nlet masterSignature = null;\nconst headerSig = (headers) => headers.join('||'); // strict: same names & order\n\nworkbook.SheetNames.forEach((sheetName, sheetIndex) => {\n  const worksheet = workbook.Sheets[sheetName];\n\n  // Convert sheet to JSON\n  const sheetData = XLSX.utils.sheet_to_json(worksheet, { defval: null });\n\n  if (!sheetData.length) {\n    console.log(`Skipping \"${sheetName}\" – no rows`);\n    return;\n  }\n\n  const headers = Object.keys(sheetData[0]);\n  const sig = headerSig(headers);\n\n  // First sheet with data -> becomes the master header pattern\n  if (!masterHeaders) {\n    masterHeaders = headers;\n    masterSignature = sig;\n    console.log(`Using \"${sheetName}\" as master header reference`);\n  } else if (sig !== masterSignature) {\n    console.log(`Skipping \"${sheetName}\" – header mismatch`);\n    return;\n  }\n\n  // Add each row as separate output item\n  sheetData.forEach((row, rowIndex) => {\n    outputItems.push({\n      json: {\n        _sheetName: sheetName,\n        _sheetIndex: sheetIndex,\n        _rowNumber: rowIndex + 1,\n        ...row,\n      },\n    });\n  });\n});\n\nconsole.log(`Total rows extracted: ${outputItems.length}`);\n\nif (!outputItems.length) {\n  throw new Error('No data extracted from any sheet with matching headers');\n}\n\n// Return all rows\nreturn outputItems;\n"
+      },
+      "id": "9deaedc2-6a92-4bb4-ad09-85270fc9f6bf",
+      "name": "Extract All Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        20
+      ],
+      "notes": "Extracts each sheet as a separate item with metadata"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        20
+      ],
+      "id": "25ba7adc-c183-4263-8c73-fcc4ed6ed62f",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "sendTo": "agreenwood@viprsolutions.com",
+        "subject": "N8n Workflow - Consolidate bdx header",
+        "message": "Here is the document. ",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "=data"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        540,
+        20
+      ],
+      "id": "3d90cf15-7864-46f9-a037-7673326ebe86",
+      "name": "Gmail",
+      "webhookId": "2ab6b5ad-21ec-452c-9ac5-bb821d100992",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "b78x3wS2Usp2gi1b",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Data Load",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -520,
+        20
+      ],
+      "id": "ce6fefcc-972c-4ea4-a82d-3bc82bf3630a",
+      "name": "On form submission",
+      "webhookId": "64b09bde-50bd-4c09-a30f-a57e374d01ec"
+    }
+  ],
+  "connections": {
+    "Extract All Sheets": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract All Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "6524d8a7-d4d0-4ab9-84e2-0f49177feaa8",
+  "triggerCount": 0,
+  "tags": []
+}

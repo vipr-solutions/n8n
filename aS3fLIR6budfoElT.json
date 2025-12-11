@@ -1,0 +1,116 @@
+{
+  "createdAt": "2025-09-13T06:38:15.928Z",
+  "updatedAt": "2025-09-13T06:38:15.928Z",
+  "id": "aS3fLIR6budfoElT",
+  "name": "My workflow 6",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a08e9917-7db3-47da-a879-074bdbe04136",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://api-prod.grip.events/1/container/8484/search/extension/109089",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "locale",
+              "value": "en-gb"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "sort",
+              "value": "name"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Host",
+              "value": "api-prod.grip.events"
+            },
+            {
+              "name": "x-grip-version",
+              "value": "ITCVegas/10.31.0/2411"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "User-Agent",
+              "value": "ITCVegas2022/2411 CFNetwork/3826.600.41 Darwin/24.6.0"
+            },
+            {
+              "name": "Connection",
+              "value": "keep-alive"
+            },
+            {
+              "name": "login-source",
+              "value": "ios;BBFBCF6C-9E8C-4E8F-A3B5-5C64EECAB88A"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-gb"
+            },
+            {
+              "name": "X-Authorization",
+              "value": "7daa7e3a-28e3-4431-8860-c6c467657c2b"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer LFqr0mz8VhcNLscpbU1PtgjKyKfA00bu"
+            }
+          ]
+        },
+        "options": {
+          "proxy": "http://localhost:9495"
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "216bf69e-33e8-4961-93e2-c79ffd97f92e",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "31c167d6-677e-4c4f-a3f0-d75aab76063a",
+  "triggerCount": 0,
+  "tags": []
+}

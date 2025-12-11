@@ -1,0 +1,150 @@
+{
+  "createdAt": "2025-12-01T10:12:56.817Z",
+  "updatedAt": "2025-12-01T10:12:56.817Z",
+  "id": "Ae1cuIyGahmhJDlz",
+  "name": "My workflow 13",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "09c902a6-883c-45be-9089-225cc82a5f52",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "feb059c5-0f81-4ded-b1d1-1612695d2e55",
+      "name": "Read Excel File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "notes": "Upload your bordereaux file here"
+    },
+    {
+      "parameters": {
+        "operation": "read"
+      },
+      "id": "b57ac6b6-09ed-42b0-88e1-20555c92c6f0",
+      "name": "Spreadsheet File",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8e2580e7-5512-4c91-ab10-80e3e8806fbf",
+      "name": "Analyze and Consolidate Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write"
+      },
+      "id": "b43e25ee-b36c-4006-9088-059abb6294d2",
+      "name": "Create Excel Output",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "=Consolidated_Bordereaux_{{ $now.toFormat('yyyy-MM-dd_HHmmss') }}.xlsx",
+        "options": {}
+      },
+      "id": "d472a395-b675-4abb-a749-fef8df18a423",
+      "name": "Save File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        0
+      ],
+      "notes": "File will be saved to N8N's default directory"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel File": {
+      "main": [
+        [
+          {
+            "node": "Spreadsheet File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Spreadsheet File": {
+      "main": [
+        [
+          {
+            "node": "Analyze and Consolidate Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze and Consolidate Sheets": {
+      "main": [
+        [
+          {
+            "node": "Create Excel Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Excel Output": {
+      "main": [
+        [
+          {
+            "node": "Save File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "5cd910b5-ff21-4f35-a707-011f2cefc1be",
+  "triggerCount": 0,
+  "tags": []
+}

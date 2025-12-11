@@ -1,0 +1,44 @@
+{
+  "createdAt": "2025-11-28T17:57:45.580Z",
+  "updatedAt": "2025-11-28T17:57:45.580Z",
+  "id": "caTOuAPWaIrs4wg2",
+  "name": "My workflow 10",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "events": [
+          "comment_created"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jiraTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b9a4c8aa-73db-4202-8a07-a5872ccd2fdf",
+      "name": "Jira Trigger",
+      "webhookId": "f8eefcf8-336a-43cc-9f85-103495176b1b",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "5d914083-7a1d-4371-a15a-09f0147dda9f",
+  "triggerCount": 0,
+  "tags": []
+}

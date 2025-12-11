@@ -1,0 +1,152 @@
+{
+  "createdAt": "2025-11-28T13:52:06.459Z",
+  "updatedAt": "2025-11-28T15:44:14.982Z",
+  "id": "iQJCz0Vp9HvIPCg8",
+  "name": "Mike wkflw - xml to csv",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "file",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "file",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -380,
+        0
+      ],
+      "id": "acf647be-5b75-4938-a68b-57b9c92c1978",
+      "name": "On form submission",
+      "webhookId": "92652147-32f9-4ce3-a6e9-3f46ab9fbad7"
+    },
+    {
+      "parameters": {
+        "operation": "xml",
+        "binaryPropertyName": "file",
+        "destinationKey": "parsed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "e6ab76f7-1e9c-4150-9358-8871f7672221",
+      "name": "Extract from File",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---------- Helpers ----------\n\n// Safely pull text from any XML->JSON shape\nfunction getText(v) {\n  if (v === null || v === undefined) return '';\n  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {\n    return String(v);\n  }\n  if (Array.isArray(v)) {\n    return v.length ? getText(v[0]) : '';\n  }\n  if (typeof v === 'object') {\n    if ('#text' in v) return getText(v['#text']);\n    const keys = Object.keys(v);\n    if (keys.length === 0) return '';\n    return getText(v[keys[0]]);\n  }\n  return '';\n}\n\nfunction isPlainObject(o) {\n  return o && typeof o === 'object' && !Array.isArray(o);\n}\n\n// Flatten a nested object into scalar key -> value pairs\n// prefix: path so far, e.g. \"address\", \"phones_phone\"\nfunction flattenObject(obj, prefix, out) {\n  if (!isPlainObject(obj)) return;\n\n  for (const [k, v] of Object.entries(obj)) {\n    if (v === null || v === undefined) continue;\n\n    const col = prefix ? `${prefix}_${k}` : k;\n\n    if (Array.isArray(v)) {\n      const objEls = v.filter(el => isPlainObject(el));\n      const primEls = v.filter(el => !isPlainObject(el));\n\n      // Nested arrays of objects *inside* a child record:\n      // we don't explode them to more rows, we just stringify/join.\n      if (objEls.length) {\n        const joined = objEls.map(el => JSON.stringify(el)).join(' | ');\n        out[col] = joined;\n      } else if (primEls.length) {\n        out[col] = primEls.map(getText).join(' | ');\n      }\n      continue;\n    }\n\n    if (isPlainObject(v)) {\n      const keys = Object.keys(v);\n\n      // Object that is only \"#text\"\n      if (keys.length === 1 && keys[0] === '#text') {\n        out[col] = getText(v);\n      } else {\n        // Regular nested object: recurse\n        flattenObject(v, col, out);\n      }\n      continue;\n    }\n\n    // Primitive\n    out[col] = getText(v);\n  }\n}\n\n// Expand one record node into one or more flat row objects\n// - scalar: simple fields that become columns\n// - childArrays: arrays of child objects (like address[], phones.phone[])\nfunction expandRecord(node) {\n  const scalar = {};\n  const childArrays = [];\n\n  if (!isPlainObject(node)) return [];\n\n  for (const [key, value] of Object.entries(node)) {\n    if (value === null || value === undefined) continue;\n\n    // ----- Arrays -----\n    if (Array.isArray(value)) {\n      const objEls = value.filter(el => isPlainObject(el));\n      const primEls = value.filter(el => !isPlainObject(el));\n\n      if (objEls.length) {\n        // This is a repeated child group: e.g. multiple <address>\n        childArrays.push({\n          key,\n          items: objEls,\n        });\n      }\n\n      if (primEls.length) {\n        // Array of primitives -> scalar column\n        scalar[key] = primEls.map(getText).join(' | ');\n      }\n\n      continue;\n    }\n\n    // ----- Objects -----\n    if (isPlainObject(value)) {\n      const keys = Object.keys(value);\n\n      // Only #text -> scalar\n      if (keys.length === 1 && keys[0] === '#text') {\n        scalar[key] = getText(value);\n        continue;\n      }\n\n      // Container-of-array pattern:\n      // e.g. <phones><phone>...</phone><phone>...</phone></phones>\n      // -> phones: { phone: [ {...}, {...} ] }\n      if (\n        keys.length === 1 &&\n        Array.isArray(value[keys[0]]) &&\n        value[keys[0]].some(el => isPlainObject(el))\n      ) {\n        const innerKey = keys[0];             // e.g. \"phone\"\n        const items = value[innerKey].filter(el => isPlainObject(el));\n        childArrays.push({\n          key: `${key}_${innerKey}`,          // e.g. \"phones_phone\"\n          items,\n        });\n        continue;\n      }\n\n      // Regular nested object -> flatten into scalar columns with prefix\n      flattenObject(value, key, scalar);\n      continue;\n    }\n\n    // ----- Primitive -----\n    scalar[key] = getText(value);\n  }\n\n  const rows = [];\n\n  // No child arrays: just one row\n  if (childArrays.length === 0) {\n    rows.push(scalar);\n    return rows;\n  }\n\n  // Cartesian product of all child arrays with the scalar fields\n  function combine(idx, base) {\n    if (idx === childArrays.length) {\n      rows.push({ ...base });\n      return;\n    }\n\n    const { key, items } = childArrays[idx];\n\n    for (const item of items) {\n      if (!isPlainObject(item)) continue;\n\n      const childFields = {};\n      // Prefix with e.g. \"address\" or \"phones_phone\"\n      flattenObject(item, key, childFields);\n\n      const next = { ...base, ...childFields };\n      combine(idx + 1, next);\n    }\n  }\n\n  combine(0, scalar);\n  return rows;\n}\n\n// Unwrap single-key wrappers like NVGAFileFinancieel, data, etc.\n// { NVGAFileFinancieel: { ... } } -> { ... }\n// { data: { person: [...] } } -> { person: [...] }\nfunction unwrapRoot(obj) {\n  let current = obj;\n  while (isPlainObject(current)) {\n    const keys = Object.keys(current);\n    if (keys.length === 1 && isPlainObject(current[keys[0]])) {\n      current = current[keys[0]];\n    } else {\n      break;\n    }\n  }\n  return current;\n}\n\n// Detect the main \"records\" array dynamically:\n// - Prefer first property that is an array of objects\n// - Fallback: first object property (wrap in array)\nfunction detectRecordsContainer(container) {\n  if (!isPlainObject(container)) return null;\n\n  // 1) array-of-objects at this level\n  for (const [key, value] of Object.entries(container)) {\n    if (Array.isArray(value) && value.some(el => isPlainObject(el))) {\n      return value;\n    }\n  }\n\n  // 2) single object: treat as single record\n  for (const [key, value] of Object.entries(container)) {\n    if (isPlainObject(value)) {\n      return Array.isArray(value) ? value : [value];\n    }\n  }\n\n  return null;\n}\n\n// ---------- MAIN EXECUTION ----------\n\n// Root JSON from XML node (n8n XML node feeding this Function node)\nconst root = items[0].json;\n\n// Unwrap wrappers like <NVGAFileFinancieel> or <data>\nconst container = unwrapRoot(root);\n\n// Find the repeating records (e.g. person[], FT[], etc.)\nconst records = detectRecordsContainer(container);\n\nif (!records || !Array.isArray(records) || records.length === 0) {\n  return []; // nothing to output -> empty CSV\n}\n\nconst output = [];\n\nfor (const rec of records) {\n  const rows = expandRecord(rec);\n  for (const row of rows) {\n    output.push({ json: row });\n  }\n}\n\nreturn output;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "9ad892d0-31f7-4fa0-9661-85846abfe104",
+      "name": "Code",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "1cac65a1-10d0-4957-883b-16c0daba3cae",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "parsed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        40,
+        0
+      ],
+      "id": "a9299bf7-765d-49cd-954d-4fbb0a429af0",
+      "name": "XML"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        []
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "8990c50e-5792-45a4-9645-2245bf65748a",
+  "triggerCount": 0,
+  "tags": []
+}

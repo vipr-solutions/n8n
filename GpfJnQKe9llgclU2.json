@@ -1,0 +1,206 @@
+{
+  "createdAt": "2025-11-26T09:03:49.954Z",
+  "updatedAt": "2025-11-26T09:06:34.103Z",
+  "id": "GpfJnQKe9llgclU2",
+  "name": "Pauls workflow copied",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Data load",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "multipleFiles": false
+            },
+            {
+              "fieldLabel": "Mapping file",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -700,
+        -60
+      ],
+      "id": "3dbb1cb0-8237-49ce-b077-b626278b7cc4",
+      "name": "On form submission",
+      "webhookId": "601bf544-fc4c-420b-a0e2-2559540cc6d6"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        580,
+        -60
+      ],
+      "id": "a0d14027-9cb1-405d-a89f-342e5678ba40",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "jsCode": "   // First Code node - Split file into lines\n   const items = $input.all();\n   const fileContent = items[0].binary?.data?.data \n     ? Buffer.from(items[0].binary.data.data, 'base64').toString('utf-8')\n     : items[0].json.data || items[0].json.content || '';\n   \n   const lines = fileContent.split('\\n');\n   return lines\n     .map(line => ({ json: { line: line.trim() } }))\n     .filter(item => item.json.line);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        -60
+      ],
+      "id": "92f68489-cb3a-4b63-a901-e51a25f8661d",
+      "name": "Split lines"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get field definitions from \"Extract Mapping File\" node\nconst fieldDefinitions = $('Extract Mapping File').all().map(item => item.json);\nconsole.log('Field definitions loaded:', fieldDefinitions.length);\n\n// Get data from \"Split lines\" node\nconst dataItems = $('Split lines').all();\nconsole.log('Data items to parse:', dataItems.length);\n\nconst parsedItems = [];\n\nfor (const item of dataItems) {\n  const line = item.json.data || item.json.line || item.json;\n  \n  // Debug first item\n  if (parsedItems.length === 0) {\n    console.log('First item structure:', JSON.stringify(item.json));\n    console.log('Line type:', typeof line);\n    console.log('Line sample:', String(line).substring(0, 100));\n  }\n  \n  if (!line || typeof line !== 'string' || line.trim().length === 0) {\n    console.log('Skipping empty/invalid line');\n    continue;\n  }\n  \n  // Parse the line using field definitions\n  const parsed = {};\n  \n  for (const field of fieldDefinitions) {\n    const fieldName = field[\"Field Name\"];\n    const length = parseInt(field[\"Length\"], 10);\n    const position = parseInt(field[\"Position for fixed length files only\"], 10);\n    \n    const startIndex = position - 1;\n    const endIndex = startIndex + length;\n    const value = line.substring(startIndex, endIndex).trim();\n    \n    parsed[fieldName] = value;\n  }\n  \n  parsedItems.push({ json: parsed });\n}\n\nconsole.log('Total parsed items:', parsedItems.length);\n\nreturn parsedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -60
+      ],
+      "id": "3daeb057-6328-414e-970c-a7d8d38759ed",
+      "name": "Mapping",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "={{ Object.keys($binary)[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -60
+      ],
+      "id": "09abd17e-7a63-49fa-8835-c4d1b2d0186e",
+      "name": "Extract Data File"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "={{ Object.keys($binary)[1] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        100,
+        -60
+      ],
+      "id": "730ba8bd-596c-4302-b940-fd7c3ef02d26",
+      "name": "Extract Mapping File"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        -100,
+        -200
+      ],
+      "id": "1fdcaac6-2d3f-4d0e-b26c-3dc0f827347c",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Data File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split lines": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Mapping": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data File": {
+      "main": [
+        [
+          {
+            "node": "Split lines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Mapping File": {
+      "main": [
+        [
+          {
+            "node": "Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Extract Mapping File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "c22e2de5-84f5-4bb4-a2f7-e9cca2d810fe",
+  "triggerCount": 0,
+  "tags": []
+}

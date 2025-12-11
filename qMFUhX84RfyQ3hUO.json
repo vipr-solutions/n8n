@@ -1,0 +1,469 @@
+{
+  "createdAt": "2025-12-08T11:04:39.600Z",
+  "updatedAt": "2025-12-11T15:03:16.835Z",
+  "id": "qMFUhX84RfyQ3hUO",
+  "name": "Zurich XML Conversion (Basic)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Give File",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Input File",
+              "fieldType": "file",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "placeholder": "Who am I emailing this file to?",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b1002a1f-c1ce-4bb0-90ee-471ec3005f02",
+      "name": "Take input file as xml",
+      "webhookId": "d26d6d59-6aac-40bc-9fe3-2e904ecdc5fe"
+    },
+    {
+      "parameters": {
+        "operation": "xml",
+        "binaryPropertyName": "Input_File",
+        "destinationKey": "xmlText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        540,
+        0
+      ],
+      "id": "2f28a757-31e9-49ef-82f0-4c93f0c5f3b9",
+      "name": "Extract XML from the file"
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "xmlText",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        840,
+        0
+      ],
+      "id": "254438ca-9e10-4606-9bca-b46f3927e7ea",
+      "name": "Convert XML to JSON"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "NVGAFileFinancieel.FT",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        0
+      ],
+      "id": "4d208be4-00c3-40b7-bd06-c515776bb931",
+      "name": "Convert the single JSON object into an object for each FT node"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65c3daae-ac6e-43c7-81e6-1e37fca02195",
+              "name": "NVGAFileFinancieel.AL",
+              "value": "={{ $json.NVGAFileFinancieel.AL }}",
+              "type": "object"
+            },
+            {
+              "id": "e379e098-badc-4f76-8ffb-48c0d980a15f",
+              "name": "NVGAFileFinancieel.VE",
+              "value": "={{ $json.NVGAFileFinancieel.VE }}",
+              "type": "object"
+            },
+            {
+              "id": "216d7c8e-97ba-4e9f-911e-4ef93ce36cd6",
+              "name": "NVGAFileFinancieel.VL",
+              "value": "={{ $json.NVGAFileFinancieel.VL }}",
+              "type": "object"
+            },
+            {
+              "id": "d694e5c4-cf65-443a-86d0-1eb469177ade",
+              "name": "NVGAFileFinancieel.FT",
+              "value": "={{ $json['NVGAFileFinancieel.FT'] }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1500,
+        0
+      ],
+      "id": "9e7678d6-79a5-4211-8a3b-6db110e66433",
+      "name": "Add data which applies to all financial transactions to the same object"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01401359-f133-4d07-bb48-efe6e7255ae7",
+              "name": "id_pol",
+              "value": "={{ $json.NVGAFileFinancieel.FT.PP.PP_NUMMER }}",
+              "type": "string"
+            },
+            {
+              "id": "60c4d1e4-07e9-4ddc-87d7-bb4a33cbd099",
+              "name": "leader",
+              "value": "={{ $json.NVGAFileFinancieel.FT.MP.MP_PLLEAD }}",
+              "type": "string"
+            },
+            {
+              "id": "c4836348-eb7c-4b8d-bfaa-12c5918432cf",
+              "name": "brk_poolNum",
+              "value": "={{ $json.NVGAFileFinancieel.FT.MP.MP_POOLNUM }}",
+              "type": "string"
+            },
+            {
+              "id": "cf7de8c4-e3d7-4c1d-b7e5-e02c4f7e00fb",
+              "name": "pol_share",
+              "value": "={{ $json.NVGAFileFinancieel.FT.MP.MP_POOLPRC }}",
+              "type": "string"
+            },
+            {
+              "id": "b0cfbb19-b674-45f0-b2c1-5101453d9fa3",
+              "name": "dt_polStart",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TDATVAN }}",
+              "type": "string"
+            },
+            {
+              "id": "5eb7a417-ad2f-4778-8534-22cb18c8a45d",
+              "name": "dt_polEnd",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TDATTM }}",
+              "type": "string"
+            },
+            {
+              "id": "b93404b7-2445-4459-bc72-fbf088e2a73d",
+              "name": "id_lob",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GABRA }}",
+              "type": "string"
+            },
+            {
+              "id": "381decdd-9c3e-443f-a711-42f4bbeb9300",
+              "name": "desc_lob",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GABRAO }}",
+              "type": "string"
+            },
+            {
+              "id": "0376c356-8715-48af-8908-8e5c08ed2f8d",
+              "name": "cde_mgaSubProd",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GASBRA }}",
+              "type": "string"
+            },
+            {
+              "id": "6cdc2d30-6ac7-4022-8c92-432dd6af2f0d",
+              "name": "desc_mgaSubProd",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GASBRAO }}",
+              "type": "string"
+            },
+            {
+              "id": "e1b91697-3ec8-4fb2-9b2e-e1182b624491",
+              "name": "cde_mgaCoverage",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GADEKCD }}",
+              "type": "string"
+            },
+            {
+              "id": "47c8825a-5ed0-46d8-95f2-0bd8de92f1ad",
+              "name": "desc_mgaCoverage",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_GADEKCO }}",
+              "type": "string"
+            },
+            {
+              "id": "9d96aca4-a7fa-48e2-846c-7210a4c46c10",
+              "name": "dt_booking",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_BOEKDAT }}",
+              "type": "string"
+            },
+            {
+              "id": "4b8c59f0-0423-424c-9912-ee7b90caf5ed",
+              "name": "amt_brokerage",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TDRLPRV }}",
+              "type": "string"
+            },
+            {
+              "id": "6a787cf4-aba3-4eca-8b00-a0b400a1bfd2",
+              "name": "amt_mgaFee",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TTEKCOM }}",
+              "type": "string"
+            },
+            {
+              "id": "7f53ef19-74a1-4d08-8b54-c57c5c3f09d7",
+              "name": "amt_gwp",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TPREMIE }}",
+              "type": "string"
+            },
+            {
+              "id": "1d2508fc-c692-4eac-8419-4c070eb97642",
+              "name": "id_claim",
+              "value": "={{ $json.NVGAFileFinancieel.FT.SD.SD_SCHNRVM }}",
+              "type": "string"
+            },
+            {
+              "id": "29071fe7-c8a1-449a-9f89-75b0b8dec802",
+              "name": "dt_claimOccurance",
+              "value": "={{ $json.NVGAFileFinancieel.FT.SD.SD_SCHADAT }}",
+              "type": "string"
+            },
+            {
+              "id": "a7151df3-e587-4fad-8508-f665b9bdd7e9",
+              "name": "amt_claimsPaidCurMonth",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TSCHBDR }}",
+              "type": "string"
+            },
+            {
+              "id": "f04cc376-443a-4e45-9a00-f736748156c6",
+              "name": "amt_claimsRecoveredCurMonth",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_TSVHBDR }}",
+              "type": "string"
+            },
+            {
+              "id": "98e66c29-4295-42b1-96c6-80e8b0ef7cd7",
+              "name": "amt_claimsReserve",
+              "value": "={{ $json.NVGAFileFinancieel.FT.FT_SCHRSRV }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1820,
+        0
+      ],
+      "id": "da5e2317-3f7c-44a3-abfa-7e0fba22815c",
+      "name": "Apply BlauwOranje column conversion (hard coded)"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "ExcelOutput",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2140,
+        0
+      ],
+      "id": "e96e8435-2253-4f06-97d5-cb791cd1aa89",
+      "name": "Convert to XLSX File"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "XML file converted to XLSX",
+        "message": "Here is your Zurich XML file converted to XLSX",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "ExcelOutput"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2820,
+        240
+      ],
+      "id": "7cb0a2f9-9e7a-41d4-85ba-d81229478bc3",
+      "name": "Gmail",
+      "webhookId": "42e5f8a3-ab68-4e68-99cf-c3c099b3abc9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "URnqtV3yxuq2hZVk",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6428fa91-e964-4d13-a766-a707a6ad3e9d",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        260
+      ],
+      "id": "c9cb56e1-59a6-4abb-bde0-caaeeee25cf0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2520,
+        240
+      ],
+      "id": "6acac74b-dd95-40e8-b22c-5adde8110196",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Take input file as xml": {
+      "main": [
+        [
+          {
+            "node": "Extract XML from the file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract XML from the file": {
+      "main": [
+        [
+          {
+            "node": "Convert XML to JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert XML to JSON": {
+      "main": [
+        [
+          {
+            "node": "Convert the single JSON object into an object for each FT node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert the single JSON object into an object for each FT node": {
+      "main": [
+        [
+          {
+            "node": "Add data which applies to all financial transactions to the same object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add data which applies to all financial transactions to the same object": {
+      "main": [
+        [
+          {
+            "node": "Apply BlauwOranje column conversion (hard coded)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply BlauwOranje column conversion (hard coded)": {
+      "main": [
+        [
+          {
+            "node": "Convert to XLSX File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to XLSX File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "06844099-73fd-4330-a5a0-688961603f9a",
+  "triggerCount": 0,
+  "tags": []
+}

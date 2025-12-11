@@ -1,0 +1,1525 @@
+{
+  "createdAt": "2025-05-23T08:20:09.087Z",
+  "updatedAt": "2025-05-23T08:20:09.087Z",
+  "id": "X1vPRabE5Oc4foS9",
+  "name": "WE - JSON to Intrali copy",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "fileName": "={{ $('Merge').item.json.fileName }}",
+          "headerRow": true,
+          "sheetName": "=Sheet1"
+        }
+      },
+      "id": "08b783e5-5071-4c9d-8992-93b243f4c96f",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        1620
+      ],
+      "retryOnFail": false,
+      "notesInFlow": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('If').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data0"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('If').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('If').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "440c4652-40c6-496c-868d-d78ef79712d1",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        560
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{        \n    \"name\": \"Sheet1\",        \n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "a3c9dc77-5041-4996-af68-fb5e84763180",
+      "name": "POST metedata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        540
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "12136b62-8610-43a2-add5-7f85e4006c02",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7db44d11-47d1-48d5-9c10-d66255c6024e",
+      "name": "Respond to Webhook5",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "9750100a-c166-445d-8f04-438170df3c17",
+      "name": "Respond to Webhook4",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to convert file to VIPR format.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "e5565b3a-e366-4346-8585-0f68d63beb7b",
+      "name": "Respond to Webhook2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        1880
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to split JSON",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7cef3fb8-c6b6-4f2d-b809-bbe49cb79ec5",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        1880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "binaryPropertyName": "data0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        1660
+      ],
+      "id": "8c5a33f8-2f54-4f82-9878-9fcae0f0e9c3",
+      "name": "Extract from File",
+      "retryOnFail": false,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        1640
+      ],
+      "id": "0e7e5caf-4601-408c-af56-0accf822cf99",
+      "name": "Split Out",
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to extract JSON from attachement",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "6553db67-ff4d-4ac4-b52f-c5800844769f",
+      "name": "File attachement failure",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1700,
+        1880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7c10984f-af8c-4963-932d-1f73fe8742d6",
+              "leftValue": "={{ Object.keys($binary)[0] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -460,
+        600
+      ],
+      "id": "1de3bbbe-8d31-4e3c-9a35-d866f91a1a15",
+      "name": "If",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "No file attached",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -140,
+        880
+      ],
+      "id": "5bd1e69a-0d0a-4230-a913-af73d0d42984",
+      "name": "Respond to Webhook6"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c0d351fe-67ce-45b2-93ee-9cad374f23a2",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "=data",
+          "rawBody": false
+        }
+      },
+      "id": "98d4c49d-70d4-49ef-8a2e-544b05dcdc63",
+      "name": "Webhook - Circles",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -840,
+        600
+      ],
+      "webhookId": "c0d351fe-67ce-45b2-93ee-9cad374f23a2"
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": " luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nNo file attached.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        80,
+        1100
+      ],
+      "id": "8245f06b-b8db-447d-8e36-b83c8b8fb9d8",
+      "name": "Mailgun",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions ",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to extract JSON from attachement.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        2080
+      ],
+      "id": "ba25d2d5-ea6d-45ed-99fb-3c3eb0dbde7d",
+      "name": "Mailgun1",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to split JSON.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        2100
+      ],
+      "id": "29fa7a4b-6568-4226-b286-3dcf4451e14a",
+      "name": "Mailgun2",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to convert file to VIPR format.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2740,
+        2280
+      ],
+      "id": "27b1d7ac-4b49-4cd7-89d1-100ddb8e55b2",
+      "name": "Mailgun3",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\n{{ $json.serverResponse.error.message }}\n{{ $json.serverResponse.error.details }}\n{{ $json.serverResponse.error. validationErrors[0].message }}\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2620,
+        1220
+      ],
+      "id": "b43bf242-0419-4bbf-8c81-e711439fb005",
+      "name": "Mailgun4",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post file to Intrali.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        1000
+      ],
+      "id": "45509c78-8635-4068-903f-7e0ce48e18f9",
+      "name": "Mailgun5",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Success",
+        "text": "=A file was successfully loaded using the VIPR API:\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2780,
+        520
+      ],
+      "id": "fcb73504-5cbb-4e4e-aef5-a581b901f1d4",
+      "name": "Mailgun6",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        760
+      ],
+      "id": "e34dacf7-69d8-4aa4-81d2-bb0b3704912b",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7a0a07b6-9d2f-4753-866a-6a3e7425e86d",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "csv"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "13db1835-8f5a-4d77-8fe7-04835100e103"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "xlsx"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7a5074e-e0ef-4f74-aa3c-daa4a731cc75",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "xls",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "xls"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cd5bf38d-00fc-40aa-9344-2bc1538a1632",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "json",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        20,
+        540
+      ],
+      "id": "1c52f3e0-5843-400c-9283-d30468323f7b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('If').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data0"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('If').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('If').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8f2274bb-b2bd-4389-bbe9-663d8554a9b2",
+      "name": "POST File1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        -300
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "5596e9ac-7fc3-412c-ba2a-1cd93ac13ff7",
+      "name": "Respond to Webhook7",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post file to Intrali.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        160
+      ],
+      "id": "4f7374d2-dffa-499d-98d3-5c21d859760d",
+      "name": "Mailgun7",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{ \n    \"name\": \"csv\",\n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "c535176f-3de6-40e3-8061-8d02d32690d7",
+      "name": "POST metedata1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2260,
+        -640
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ce5aceb1-dc15-4df1-93d9-089511e288fe",
+      "name": "Respond to Webhook3",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2780,
+        -660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "ab36bd3d-9f36-4d49-8a9f-62488a09390b",
+      "name": "Respond to Webhook8",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2720,
+        -180
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\n{{ $json.serverResponse.error.message }}\n{{ $json.serverResponse.error.details }}\n{{ $json.serverResponse.error. validationErrors[0].message }}\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        40
+      ],
+      "id": "3dab4e44-9bad-4628-9697-0684cd00cba2",
+      "name": "Mailgun8",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Success",
+        "text": "=A file was successfully loaded using the VIPR API:\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        -660
+      ],
+      "id": "d45ff62a-09e7-4c35-adff-3e14bef041a3",
+      "name": "Mailgun9",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        -420
+      ],
+      "id": "448cd4ce-ac9f-4af9-b2df-82dc61c5d03a",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('If').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('If').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('If').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4894dc4e-5702-4201-b4c4-049ad75e2c1f",
+      "name": "POST File2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2840,
+        1620
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{        \n    \"name\": \"Sheet1\",        \n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "e6d120ee-9ff5-484e-a61b-882a6aac085a",
+      "name": "POST metedata2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3460,
+        1620
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "4cba0e49-7dd1-4541-800d-e176a7a7d499",
+      "name": "Respond to Webhook9",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        2080
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "aa885fd1-d826-40c4-ba4c-08d0ed66e6b2",
+      "name": "Respond to Webhook10",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3220,
+        1860
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\n{{ $json.serverResponse.error.message }}\n{{ $json.serverResponse.error.details }}\n{{ $json.serverResponse.error. validationErrors[0].message }}\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        4140,
+        2300
+      ],
+      "id": "5a07a667-afb6-4148-ad8e-c3a817760cce",
+      "name": "Mailgun10",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Error",
+        "text": "=There was a problem with an API submission:\n\nFailed to post file to Intrali.\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        3560,
+        2080
+      ],
+      "id": "319872d3-4e05-4ea3-a3c8-b078e09e7d47",
+      "name": "Mailgun11",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3700,
+        1840
+      ],
+      "id": "19da4c9e-1bd4-4e94-861b-6e8877b94d3a",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "eab94acf-1435-4c3e-9718-fdd8c7c9b013",
+      "name": "Respond to Webhook11",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3980,
+        1620
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "no-reply@mailbox.viprsolutions.com",
+        "toEmail": "luis.garcia@hamiltongroup.com, Tim.Portway@hamiltongroup.com, mauricio.morato@hamiltongroup.com, tom.longworth@hamiltongroup.com",
+        "ccEmail": "paul@vipr.solutions",
+        "subject": "VIPR API Success",
+        "text": "=A file was successfully loaded using the VIPR API:\n\nUMR:  {{ $('Webhook - Circles').item.json.body.umr }}\nSubmitted by: {{ $('Webhook - Circles').item.json.body.submittedBy }}"
+      },
+      "type": "n8n-nodes-base.mailgun",
+      "typeVersion": 1,
+      "position": [
+        4300,
+        1620
+      ],
+      "id": "7efca070-b667-4d85-aa9e-71af1ba24fa8",
+      "name": "Mailgun12",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "content": "## CSV\n",
+        "height": 1120,
+        "width": 2400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -780
+      ],
+      "id": "ba772739-6669-4277-915e-b0db75ad6586",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Excel\n",
+        "height": 1000,
+        "width": 1980
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        420
+      ],
+      "id": "e6674979-0ff3-44b3-b784-f7ba22115c78",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## JSON\n",
+        "height": 1100,
+        "width": 3440
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1480
+      ],
+      "id": "5e430d78-de84-40c4-a9d8-34ab2c6464a0",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { read: xlsxRead } = require('xlsx');\n\nconst data = items[0].binary.data;\n\nworkbook = xlsxRead(data.data);\n\nreturn workbook.SheetNames.map((s) => {\n  return {\n    json: {\n      name: s,\n    }\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -420
+      ],
+      "id": "59d23840-5ab7-4e26-ab11-1e84187826b5",
+      "name": "XLSX Code Node"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0c60f5d-d919-4d8f-913d-55943e661bcc",
+              "name": "fileName",
+              "value": "={{ $binary.data0.fileName }}.xlsx",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        580,
+        1600
+      ],
+      "id": "a6122c26-0095-4f10-bb85-027913df573e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1220,
+        1660
+      ],
+      "id": "a1223601-fb53-466d-b8f7-c10679795d38",
+      "name": "Merge"
+    }
+  ],
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "POST File2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "File attachement failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Circles": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook6": {
+      "main": [
+        [
+          {
+            "node": "Mailgun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File attachement failure": {
+      "main": [
+        [
+          {
+            "node": "Mailgun1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Mailgun2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Mailgun3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook4": {
+      "main": [
+        [
+          {
+            "node": "Mailgun5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook5": {
+      "main": [
+        [
+          {
+            "node": "Mailgun4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Mailgun6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "POST File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File1": {
+      "main": [
+        [
+          {
+            "node": "POST metedata1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook7": {
+      "main": [
+        [
+          {
+            "node": "Mailgun7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Mailgun9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook8": {
+      "main": [
+        [
+          {
+            "node": "Mailgun8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File2": {
+      "main": [
+        [
+          {
+            "node": "POST metedata2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook11",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook9": {
+      "main": [
+        [
+          {
+            "node": "Mailgun10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook10": {
+      "main": [
+        [
+          {
+            "node": "Mailgun11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook11": {
+      "main": [
+        [
+          {
+            "node": "Mailgun12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/London",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "c8be5b0c-0ef8-4d28-a223-2244a3ae4ca8",
+  "triggerCount": 1,
+  "tags": []
+}

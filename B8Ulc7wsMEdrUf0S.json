@@ -1,0 +1,72 @@
+{
+  "createdAt": "2025-11-26T16:15:33.988Z",
+  "updatedAt": "2025-11-28T18:34:41.032Z",
+  "id": "B8Ulc7wsMEdrUf0S",
+  "name": "Importing Workflows into Intarga",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "file",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "excel",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "47fda8ce-b8ac-426b-92c6-cc59adf1b809",
+      "name": "On form submission",
+      "webhookId": "74a4bd4e-f2de-4c3c-93ce-dce415365dbd"
+    },
+    {
+      "parameters": {
+        "jsCode": "  // Resolve title from multiple possible fields\n  let rawTitle =\n    node.label ||\n    node.title ||\n    node.name ||\n    node.task ||\n    node.text ||\n    node.desc ||\n    node.Description ||\n    String(node.id);\n\n  rawTitle = String(rawTitle);\n\n  // Split on both \\n and \\r\\n just in case\n  const lines = rawTitle.split(/\\r?\\n/);\n\n  const titleText = esc(lines[0]);\n\n  // Escape first, then turn literal newlines into &#xa; entities\n  // This keeps the XML valid and Draw.io understands &#xa; as a line break.\n  const attrsText = esc(lines.slice(1).join(\"\\n\")).replace(/\\n/g, \"&#xa;\");\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "5127d7e7-7b8e-402b-8d45-1f2314faa346",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "527a6f62-8c8a-408f-b890-bd4874899e9f",
+  "triggerCount": 0,
+  "tags": []
+}

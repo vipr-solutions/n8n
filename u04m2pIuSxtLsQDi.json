@@ -1,0 +1,129 @@
+{
+  "createdAt": "2025-12-01T10:35:52.502Z",
+  "updatedAt": "2025-12-01T10:35:52.502Z",
+  "id": "u04m2pIuSxtLsQDi",
+  "name": "My workflow 14",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "459e8548-1491-438b-b8ef-2a312e54bbd3",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "39cb55a6-7ac4-4b4e-8f93-f3c77a17276a",
+      "name": "Read Excel File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "notes": "Upload your bordereaux file here"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Import xlsx library\nconst XLSX = require('xlsx');\n\n// Get binary data from input\nconst binaryData = $input.first().binary.data;\nconst buffer = Buffer.from(binaryData.data, 'base64');\n\n// Read workbook\nconst workbook = XLSX.read(buffer, { type: 'buffer' });\n\n// Extract all sheets as separate items\nconst items = [];\n\nworkbook.SheetNames.forEach(sheetName => {\n  const worksheet = workbook.Sheets[sheetName];\n  const data = XLSX.utils.sheet_to_json(worksheet);\n  \n  items.push({\n    json: {\n      sheetName: sheetName,\n      data: data\n    }\n  });\n});\n\nconsole.log(`Extracted ${items.length} sheets from workbook`);\n\nreturn items;"
+      },
+      "id": "b10865c7-adff-4331-bf15-c6471c4d816b",
+      "name": "Extract All Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "notes": "Reads all sheets from Excel file using XLSX library"
+    },
+    {
+      "parameters": {},
+      "id": "9b55fe1a-fce5-4461-90bd-35cfd364a566",
+      "name": "Analyze and Consolidate Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write"
+      },
+      "id": "5ce72acc-45d4-479a-94bc-076bf113d87c",
+      "name": "Create Excel Output",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fileName": "=Consolidated_Bordereaux_{{ $now.toFormat('yyyy-MM-dd_HHmmss') }}.xlsx",
+        "options": {}
+      },
+      "id": "f7735b43-4914-478c-818f-8c7b4f9d784f",
+      "name": "Save File",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        0
+      ],
+      "notes": "File will be saved to N8N's default directory"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze and Consolidate Sheets": {
+      "main": [
+        [
+          {
+            "node": "Create Excel Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Excel Output": {
+      "main": [
+        [
+          {
+            "node": "Save File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "e8463e5c-e3ee-40a6-9382-f0d8720f9289",
+  "triggerCount": 0,
+  "tags": []
+}

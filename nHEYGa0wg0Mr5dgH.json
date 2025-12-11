@@ -1,0 +1,194 @@
+{
+  "createdAt": "2025-11-28T10:13:28.247Z",
+  "updatedAt": "2025-12-01T10:07:21.413Z",
+  "id": "nHEYGa0wg0Mr5dgH",
+  "name": "Consolidate Headers",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "file"
+      },
+      "id": "3e02cd81-617d-47ca-a615-b3f1e479b6ff",
+      "name": "Read Binary Files",
+      "type": "n8n-nodes-base.readBinaryFiles",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -400
+      ],
+      "alwaysOutputData": true,
+      "notes": "Browse and select your XLSX file here"
+    },
+    {
+      "parameters": {
+        "operation": "addWorksheet",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "additionalFields": {}
+      },
+      "id": "183a83c2-096f-4cf5-a6e5-3e511a50298f",
+      "name": "Read Excel - All Sheets",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [
+        740,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst headerGroups = {};\n\nfor (const item of items) {\n  const sheetName = item.json.sheetName || 'Unknown';\n  const data = item.json;\n  const keys = Object.keys(data).filter(k => k !== 'sheetName');\n  \n  if (keys.length > 0) {\n    const headerRow = keys.sort();\n    const headerSignature = headerRow.join('|');\n    \n    if (!headerGroups[headerSignature]) {\n      headerGroups[headerSignature] = {\n        headers: headerRow,\n        sheets: [],\n        allRows: []\n      };\n    }\n    \n    headerGroups[headerSignature].sheets.push(sheetName);\n    headerGroups[headerSignature].allRows.push({\n      ...data,\n      _source_sheet: sheetName\n    });\n  }\n}\n\nconst output = [];\n\nfor (const [signature, group] of Object.entries(headerGroups)) {\n  let outputSheetName;\n  if (group.sheets.length === 1) {\n    outputSheetName = group.sheets[0];\n  } else {\n    outputSheetName = 'Consolidated_' + group.sheets.join('_').substring(0, 25);\n  }\n  \n  output.push({\n    json: {\n      sheetName: outputSheetName,\n      headerGroup: signature,\n      sourceSheets: group.sheets,\n      sheetCount: group.sheets.length,\n      rows: group.allRows\n    }\n  });\n}\n\nreturn output;"
+      },
+      "id": "27f2e03f-63c6-4d76-9ae4-752c23594b69",
+      "name": "Code - Group by Headers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rows",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": {
+          "fields": [
+            {
+              "fieldName": "sheetName"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ef94a1aa-f200-4836-bf8b-63d312c26846",
+      "name": "Split Out Rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "write"
+      },
+      "id": "5bbf1f53-3444-4677-809c-ee5bfed726ac",
+      "name": "Write Excel - Multiple Sheets",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Bdx Upload",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        -400
+      ],
+      "id": "6a64c230-6a49-4a90-a08e-c0db6c0b4d08",
+      "name": "Upload bordereau",
+      "webhookId": "30b5406c-ab9e-42bd-8b69-23ae36b409a1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        -660
+      ],
+      "id": "d3a25ac3-de25-4597-b5c8-ea1c9ea37ae6",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Read Binary Files": {
+      "main": [
+        [
+          {
+            "node": "Read Excel - All Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel - All Sheets": {
+      "main": [
+        [
+          {
+            "node": "Code - Group by Headers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Group by Headers": {
+      "main": [
+        [
+          {
+            "node": "Split Out Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Rows": {
+      "main": [
+        [
+          {
+            "node": "Write Excel - Multiple Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload bordereau": {
+      "main": [
+        [
+          {
+            "node": "Read Binary Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "3b961b77-7661-43fe-9dfa-c11f171a3c28",
+  "triggerCount": 0,
+  "tags": []
+}

@@ -1,0 +1,4047 @@
+{
+  "createdAt": "2025-12-01T11:27:08.663Z",
+  "updatedAt": "2025-12-01T11:27:26.545Z",
+  "id": "nTngXtRvUhRaRb1O",
+  "name": "JIRA Reporting (updated last 60 mins) BACKUP",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        0
+      ],
+      "id": "283bdfe8-d663-45e1-b1e0-474cdf380488",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://viprsolutions.atlassian.net/rest/api/3/search/jql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{\n  JSON.stringify({\n    jql: $json.jql,\n    expand: $json.expand,\n    fields: $json.fields,\n    maxResults: $json.maxResults,\n    ...( $json.nextPageToken ? { nextPageToken: $json.nextPageToken } : {} )\n  })\n}}",
+        "options": {
+          "pagination": {}
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "837e17af-6ee5-4ce2-91e5-0b4e17b4bfb8",
+      "name": "HTTP Request",
+      "alwaysOutputData": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const maxResults = 100;\n\nconst config = {\n  jql: 'updated >= -120m',\n  expand: \"names,changelog\",\n  fields: [\n    \"key\",\"summary\",\"assignee\",\"status\",\"updated\",\"project\",\"issuetype\",\n    \"priority\",\"reporter\",\"labels\",\"created\",\"duedate\",\"resolution\",\"components\"\n  ],\n  maxResults,\n};\n\n// reset accumulator in static data\nconst data = $getWorkflowStaticData('global');\ndata.allIssues = [];\n\nreturn [{ json: { ...config, nextPageToken: null } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "615359af-6f8f-4669-856e-ac1cec610112",
+      "name": "Code: Init"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\n\nconst pageIssues = $json.issues || [];\nif (!data.allIssues) data.allIssues = [];\n\n// push is O(k), concat is O(n+k)\ndata.allIssues.push(...pageIssues);\n\nconst nextToken = $json.nextPageToken || null;\nconst init = $items(\"Code: Init\")[0].json;\n\nreturn [{\n  json: {\n    jql: init.jql,\n    expand: init.expand,\n    fields: init.fields,\n    maxResults: init.maxResults,\n    nextPageToken: nextToken\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "9fff6a92-b735-418a-936b-d22a32547a98",
+      "name": "Code: Extract and Accumulate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "46c6fada-8f11-4915-b8c3-627e639a00a4",
+              "leftValue": "={{ $json.nextPageToken }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "25a4b95a-9413-401c-8257-8fdb9d5380d7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nconst allIssues = data.allIssues || [];\n\nreturn [{\n  json: {\n    issues: allIssues,\n    totalFetched: allIssues.length\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        20
+      ],
+      "id": "d8b10139-1c84-46a5-b456-6c38b32d0d90",
+      "name": "Code: Final Output"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "issues",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "Issue"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        20
+      ],
+      "id": "ec72b420-fcd3-48da-9a0b-1d8c25bebd78",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Issue.changelog.histories",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "History"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        20
+      ],
+      "id": "c43c0f40-fa5d-418f-8344-13285eff8d3f",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "History.items",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "Item"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        20
+      ],
+      "id": "fd754721-471d-463b-81fc-ae635b9d2928",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72f36229-a77c-4076-9f7e-be60d9ffbdef",
+              "name": "issue.key",
+              "value": "={{ $json.Issue.key }}",
+              "type": "string"
+            },
+            {
+              "id": "aaa60412-fd2f-4960-aed9-f1b7ddd5c7e2",
+              "name": "issues.fields.project.name",
+              "value": "={{ $json.Issue.fields.project.name }}",
+              "type": "string"
+            },
+            {
+              "id": "26f0d419-5bb5-4a25-af61-b20d2a5f5974",
+              "name": "issues.fields.reporter.displayName",
+              "value": "={{ $json.Issue.fields.reporter.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "a25b4837-331e-4ecf-8891-62527d15b95e",
+              "name": "issues.fields.reporter.emailAddress",
+              "value": "={{ $json.Issue.fields.reporter.emailAddress }}",
+              "type": "string"
+            },
+            {
+              "id": "78de950e-0678-428c-8dbb-06e2b64fcd41",
+              "name": "issues.fields.assignee.displayName",
+              "value": "={{ $json.Issue.fields.assignee.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "73649628-961e-4204-a35a-8ef623310d90",
+              "name": "issues.fields.assignee.emailAddress",
+              "value": "={{ $json.Issue.fields.assignee.emailAddress }}",
+              "type": "string"
+            },
+            {
+              "id": "208e8665-d89b-4659-bfe3-817530f9622c",
+              "name": "issues.fields.priority.name",
+              "value": "={{ $json.Issue.fields.priority.name }}",
+              "type": "string"
+            },
+            {
+              "id": "5540f9b4-a026-44f8-ac91-6a3a2d475bb7",
+              "name": "issues.fields.updated",
+              "value": "={{ $json.Issue.fields.updated }}",
+              "type": "string"
+            },
+            {
+              "id": "032812e3-191a-433f-9428-6d87fa12f135",
+              "name": "issues.fields.status.description",
+              "value": "={{ $json.Issue.fields.status.description }}",
+              "type": "string"
+            },
+            {
+              "id": "e9418fcb-2af2-4ae4-aa4f-00963c66a444",
+              "name": "Issue.fields.status.statusCategory.name",
+              "value": "={{ $json.Issue.fields.status.statusCategory.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b6b6d5e3-0918-4b2e-8b2d-4257a8d4d664",
+              "name": "Issue.fields.status.name",
+              "value": "={{ $json.Issue.fields.status.name }}",
+              "type": "string"
+            },
+            {
+              "id": "435e7af9-644f-4f81-9006-f1af78ef17bf",
+              "name": "issues.changelog.histories.id",
+              "value": "={{ $json.History.id }}",
+              "type": "string"
+            },
+            {
+              "id": "1af4c996-7353-4a50-ba42-1d3efd5bb4e5",
+              "name": "issues.changelog.histories.author.displayName",
+              "value": "={{ $json.History.author.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "8a604087-2bb7-409f-a04a-45059fb5f834",
+              "name": "issues.changelog.histories.create",
+              "value": "={{ $json.History.created }}",
+              "type": "string"
+            },
+            {
+              "id": "052c41f6-5c83-4cc6-bcbf-093a046b04df",
+              "name": "Item.field",
+              "value": "={{ $json.Item.field }}",
+              "type": "string"
+            },
+            {
+              "id": "a956870e-312b-46b1-b32b-80cda6fb0ca1",
+              "name": "Item.fromString",
+              "value": "={{ $json.Item.fromString }}",
+              "type": "string"
+            },
+            {
+              "id": "7c5b1d1a-0bff-474b-b6ce-30d774202ad6",
+              "name": "Item.toString",
+              "value": "={{ $json.Item.toString }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        20
+      ],
+      "id": "29b58341-c03f-45fd-a75e-3b5bee5e5d84",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2680,
+        -180
+      ],
+      "id": "425d5c5c-bf9e-4db5-9d50-729b2105e02b",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "content": "Get the non-comment changes for recent items, note Init contains minute value",
+        "height": 380,
+        "width": 2260
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -140
+      ],
+      "id": "b55ab1e8-3af2-480e-abf7-f371370a7f7f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f7c57d1c-5747-45af-856a-9bbe5d434478",
+              "name": "Issue.id",
+              "value": "={{ $json.Issue.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1740,
+        360
+      ],
+      "id": "c204db14-f59a-42ee-9c17-bf42904b021d",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "resource": "issueComment",
+        "operation": "getAll",
+        "issueKey": "={{ $json.Issue.id }}",
+        "options": {
+          "orderBy": "+created"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        360
+      ],
+      "id": "38120732-8825-44b5-b8eb-04cf4e878077",
+      "name": "Jira Software",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Also get the comment changes for recent items, note filter contains minute value",
+        "height": 240,
+        "width": 1740
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        320
+      ],
+      "id": "ec6335ad-b4d5-481d-806b-04a1a0369ea2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e5fc6bb9-66fd-4fe2-b243-0b9031aa7d0c",
+              "leftValue": "={{ $json.updated }}",
+              "rightValue": "={{ $now.minus({minutes: 120}) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2160,
+        360
+      ],
+      "id": "b85aac75-b902-41db-bbe0-0e7357f7d480",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.content",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "Content"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2380,
+        360
+      ],
+      "id": "28d1df4a-69fb-4795-8e9d-c68ff75490b1",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "959dc59b-a6b8-4f95-8548-030734d12d23",
+              "name": "self",
+              "value": "={{ $json.self }}",
+              "type": "string"
+            },
+            {
+              "id": "79fbae4e-eb5c-40ea-af17-af64708ea46f",
+              "name": "IssueId",
+              "value": "={{ $json.self.split('/issue/')[1].split('/')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "5fa01785-a881-4dd4-aa95-6d895a0040c4",
+              "name": "updateAuthor.displayName",
+              "value": "={{ $json.updateAuthor.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "dcca7141-6606-40c1-949c-651e00f1af31",
+              "name": "updated",
+              "value": "={{ $json.updated }}",
+              "type": "string"
+            },
+            {
+              "id": "a8be1370-69d4-4733-967e-3ddcecf955ee",
+              "name": "SubContent.text",
+              "value": "={{ $json.SubContent?.text ?? $json.SubContent?.attrs?.text ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "7e38973b-3962-41dd-b23d-1396b772a7ad",
+              "name": "CommentId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2720,
+        360
+      ],
+      "id": "cb0814ca-d554-42c8-a799-d6b662d45ef7",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const byCommentId = {};\n\nfor (const item of items) {\n  const c = item.json;\n  const commentId = c.CommentId;\n  if (!commentId) continue;\n\n  const text = c.SubContent?.text;\n\n  // skip null/undefined\n  if (text == null) continue;\n\n  // optionally skip empty strings after trim\n  if (typeof text === \"string\" && text.trim() === \"\") continue;\n\n  if (!byCommentId[commentId]) {\n    byCommentId[commentId] = { ...c, concatenatedText: \"\" };\n  }\n\n  byCommentId[commentId].concatenatedText +=\n    (byCommentId[commentId].concatenatedText ? \"\" : \"\") + text;\n}\n\n// one output item per CommentId\nreturn Object.values(byCommentId).map(v => ({ json: v }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2920,
+        360
+      ],
+      "id": "6cd0254d-4ecf-42d5-9ecd-51b0336ece26",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "Content.content",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "SubContent"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2540,
+        360
+      ],
+      "id": "f210c64e-894e-459f-848a-f9927f9d5de0",
+      "name": "Split Out4"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.Issue.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        680
+      ],
+      "id": "3d948c95-2bef-430e-8f8f-abbde27f94af",
+      "name": "Jira Software1",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cb6f398-2d0c-42bc-9fe6-1df9bbbbfe4d",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "678b7ce0-644e-401a-9fe9-b15cf16fe477",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "35868451-fb2e-49b4-bd50-71ab13d520a8",
+              "name": "fields.issuelinks",
+              "value": "={{ $json.fields.issuelinks }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2140,
+        680
+      ],
+      "id": "4b4da1c3-7061-48d4-9630-82195d81d78c",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "fields.issuelinks",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "IssueLink"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2360,
+        680
+      ],
+      "id": "1942e655-780d-45bf-b4b0-0421ef4e78dd",
+      "name": "Split Out5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81da9328-107d-4652-a8b2-b107aa70b464",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "733bfb6c-9408-4478-bf0b-749c8a8e6ca7",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "7eefcd64-4176-4002-bac4-182b0f4475ad",
+              "name": "LinkedIssueKey",
+              "value": "={{ $json.IssueLink?.inwardIssue?.key ?? $json.IssueLink?.outwardIssue?.key ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "d7dd7985-9c0e-4574-ab00-f8b157052f1f",
+              "name": "LinkedIssueSummary",
+              "value": "={{ $json.IssueLink?.inwardIssue?.fields.summary ?? $json.IssueLink?.outwardIssue?.fields.summary ?? null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2580,
+        680
+      ],
+      "id": "8a793be2-8d18-4958-a386-7c8cdf2de2e2",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "content": "Identify linked issues to those which have been updated and add them to the list",
+        "height": 520,
+        "width": 1720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        600
+      ],
+      "id": "b7114b8d-adca-4234-9222-fb5affa6ce2e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "are you a watcher of an item that hasn't been updated, but was linked to an item that was?",
+        "height": 300,
+        "width": 1220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3480,
+        600
+      ],
+      "id": "e2a080da-5778-4a78-951b-142073b5e31e",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "Categorize the information to be fed to the user.",
+        "height": 640,
+        "width": 700
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        6520,
+        680
+      ],
+      "id": "abf396b3-e387-47d8-9331-1ca54725fe83",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "Distribute the information to the user. Potentially integrate a feedback loop so that users can ensure they aren't bothered by the same item multiple times in the case of suggestions like \"would you like to make yourself a watcher on this item?\"",
+        "height": 280,
+        "width": 700
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7020,
+        60
+      ],
+      "id": "453aaa46-306f-4549-ab9c-6aa2838e56f9",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2d10b6b-ff1d-4fe8-aaa6-23ef9ab8e653",
+              "name": "LinkedIssueKey",
+              "value": "={{ $json.LinkedIssueKey }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2780,
+        680
+      ],
+      "id": "61fc21ba-66fd-4314-ba61-2898c3868c44",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5c9d87bf-247d-48c2-930e-015ac8f1727b",
+              "name": "LinkedIssueKey",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2780,
+        940
+      ],
+      "id": "bad026f3-2845-4385-badc-f9f10f3fd253",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        3000,
+        820
+      ],
+      "id": "6a45b1f7-616e-47e8-848b-d2dbdfbf0f37",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        3220,
+        820
+      ],
+      "id": "0b7857f5-7d66-43ab-8577-05c8f0f1239f",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "url": "=https://viprsolutions.atlassian.net/rest/api/3/issue/{{ $json.LinkedIssueKey }}/watchers",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "options": {
+          "pagination": {}
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        720
+      ],
+      "id": "02776020-f89e-4bc5-8805-99745f515694",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "watchers",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3740,
+        720
+      ],
+      "id": "c5fab997-d48c-476a-9cd5-462338a11559",
+      "name": "Split Out6"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ddd18af-aba0-48e5-8e9b-b3f8b3db45ee",
+              "name": "IssueKey",
+              "value": "={{ $json.self.split('/issue/')[1].split('/')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "15aefbaf-3ae3-451a-a16a-8bc6cdb3a09d",
+              "name": "watcherName",
+              "value": "={{ $json.watchers.displayName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3960,
+        720
+      ],
+      "id": "549c35cd-69c7-46a6-ad9b-0fd0207acb63",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "32c3cc33-d4e3-4508-8e23-2fb229aaed49",
+              "leftValue": "={{ $json.watcherName }}",
+              "rightValue": "Michael Foreman",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        4180,
+        720
+      ],
+      "id": "312d13dd-c083-46fd-962d-aed83a05a1ad",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "watchers",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        1200
+      ],
+      "id": "5d2bcdd4-6e2d-40bd-91b2-3aa7e0a77026",
+      "name": "Split Out7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ddd18af-aba0-48e5-8e9b-b3f8b3db45ee",
+              "name": "IssueKey",
+              "value": "={{ $json.self.split('/issue/')[1].split('/')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "15aefbaf-3ae3-451a-a16a-8bc6cdb3a09d",
+              "name": "watcherName",
+              "value": "={{ $json.watchers.displayName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2360,
+        1200
+      ],
+      "id": "420737de-5103-4373-ac56-fd91c43f5232",
+      "name": "Edit Fields8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "32c3cc33-d4e3-4508-8e23-2fb229aaed49",
+              "leftValue": "={{ $json.watcherName }}",
+              "rightValue": "Michael Foreman",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2580,
+        1200
+      ],
+      "id": "5ad70de6-78a0-40b6-831a-1486f15f630a",
+      "name": "Filter2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2aa3ed77-5f83-4460-b259-9972f86e444d",
+              "name": "Issue.key",
+              "value": "={{ $json.Issue.key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1720,
+        1180
+      ],
+      "id": "ea101731-a35c-4bb8-83e8-9bddf4b1f816",
+      "name": "Edit Fields9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "35200f08-4a44-4bfa-a44f-53928395127e",
+              "leftValue": "={{ $json.issues.changelog.histories.create }}",
+              "rightValue": "={{ $now.minus({minutes: 120}) }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        2380,
+        20
+      ],
+      "id": "5bf6a55a-7d47-450a-bdac-ece4f1da1e5e",
+      "name": "Filter3"
+    },
+    {
+      "parameters": {
+        "content": "Are you a watcher, assigneee or reporter of an item that was actually updated?",
+        "height": 520,
+        "width": 1720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1700,
+        1140
+      ],
+      "id": "02267c48-5503-4ea7-a042-d47f6eb3761a",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.Issue.id }}",
+        "additionalFields": {
+          "fields": "id,key"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        4180,
+        560
+      ],
+      "id": "4af40e7d-4031-404e-a270-427f5a09c8ed",
+      "name": "Jira Software2",
+      "retryOnFail": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Keep everything in the top that doesn't have a match in the bottom",
+        "height": 400,
+        "width": 600,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4100,
+        520
+      ],
+      "id": "7bf0c90f-c914-4e98-8fa1-c5ee8b4742c9",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "key",
+              "field2": "IssueKey"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.compareDatasets",
+      "typeVersion": 2.3,
+      "position": [
+        4400,
+        640
+      ],
+      "id": "1e78c0c6-8411-4c5b-8068-517cb441c612",
+      "name": "Compare Datasets"
+    },
+    {
+      "parameters": {
+        "url": "=https://viprsolutions.atlassian.net/rest/api/3/issue/{{ $json.Issue.key }}/watchers",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "options": {
+          "pagination": {}
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        1200
+      ],
+      "id": "2a9811fb-f6e7-4b7f-bcaf-2345622e70ff",
+      "name": "Watcher Request",
+      "alwaysOutputData": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.Issue.key }}",
+        "additionalFields": {
+          "fields": "id,key,assignee,reporter"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        1380
+      ],
+      "id": "2278024c-a3a1-4a43-b98d-b1a024504328",
+      "name": "Jira Software3",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1723575c-50ea-40c0-a778-a183137e0e77",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "eb5cfeeb-7958-446a-b73b-08998ad3cb0e",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "39c8e883-160a-4751-a637-def61b25e090",
+              "name": "assigneeName",
+              "value": "={{ $json.fields.assignee.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "5ac8af01-807c-4837-88d0-b3c2322047cb",
+              "name": "reporterName",
+              "value": "={{ $json.fields.reporter.displayName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2580,
+        1380
+      ],
+      "id": "1b813321-e778-4fdd-93c7-fe7df3bde3d4",
+      "name": "Edit Fields10"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "IssueKey",
+              "field2": "key"
+            }
+          ]
+        },
+        "joinMode": "keepEverything",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2800,
+        1280
+      ],
+      "id": "d64c2ceb-0c25-483d-a23c-2f498d33da10",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b85f5141-541a-4400-9a53-5b16a941ffe6",
+              "leftValue": "={{ $json.assigneeName }}",
+              "rightValue": "Michael Foreman",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "142502fb-3304-477e-904f-b83d702070c7",
+              "leftValue": "={{ $json.reporterName }}",
+              "rightValue": "Michael Foreman",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "a8f516d9-1572-4ebe-9fc2-5960c946dccf",
+              "leftValue": "={{ $json.watcherName }}",
+              "rightValue": "Michael Foreman",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        3020,
+        1280
+      ],
+      "id": "bcb49723-cc8e-40d3-ab4b-1f168fce813d",
+      "name": "Filter4"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        6580,
+        720
+      ],
+      "id": "143d220d-c79f-45ea-9621-766cdc13e2ec",
+      "name": "Linked Items with updates"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        6580,
+        1120
+      ],
+      "id": "af468623-6571-4d5d-b076-e690015bcf62",
+      "name": "Core Items with Updates"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        6560,
+        220
+      ],
+      "id": "42dfa154-b3ca-4e64-9356-0817e4a522a1",
+      "name": "Comments"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        6560,
+        80
+      ],
+      "id": "de7c27ae-8e87-4621-a930-44ff25ea7b82",
+      "name": "Other Changes"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a230de0-f1b1-47a3-bf70-c74031db9bee",
+              "name": "IssueId",
+              "value": "={{ $json.IssueId }}",
+              "type": "string"
+            },
+            {
+              "id": "ff538028-61d7-41d3-bcb5-8153cb47e003",
+              "name": "Comment.Commenter",
+              "value": "={{ $json.updateAuthor.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "8d08caf2-a951-4d3a-9e8c-bbb3a0ebbc6f",
+              "name": "Comment.CommentText",
+              "value": "={{ $json.concatenatedText }}",
+              "type": "string"
+            },
+            {
+              "id": "057e71ce-0d20-4d0f-898e-9df1496d32d8",
+              "name": "Comment.CommentUpdated",
+              "value": "={{ $json.updated }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6780,
+        220
+      ],
+      "id": "af6275b0-3f13-4d08-9dab-c83111500bbe",
+      "name": "Edit Fields11"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1781f261-0bbe-41b4-88ec-fd9b5553d8ae",
+              "name": "issueKey",
+              "value": "={{ $json.issue.key }}",
+              "type": "string"
+            },
+            {
+              "id": "d0766566-6891-46e7-abce-afa72bc248b1",
+              "name": "FieldUpdated",
+              "value": "={{ $json.Item.field }}",
+              "type": "string"
+            },
+            {
+              "id": "e0a5054f-35cb-4d1c-9e17-c5daab44a233",
+              "name": "FieldChangedFrom",
+              "value": "={{ $json.Item.fromString }}",
+              "type": "string"
+            },
+            {
+              "id": "18ef3486-d88a-4bfb-8f02-e0fb9239a804",
+              "name": "FieldChangedTo",
+              "value": "={{ $json.Item.toString }}",
+              "type": "string"
+            },
+            {
+              "id": "51d8b597-ee3f-4c52-b0b1-382033b3cce9",
+              "name": "FieldChangedBy",
+              "value": "={{ $json.issues.changelog.histories.author.displayName }}",
+              "type": "string"
+            },
+            {
+              "id": "d78088f4-0d4f-4ff1-a0ad-81f31e8ed3b7",
+              "name": "FieldChangedOn",
+              "value": "={{ $json.issues.changelog.histories.create }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6780,
+        80
+      ],
+      "id": "546b80fc-550a-4973-8f5a-dd42ed4f17d1",
+      "name": "Edit Fields12"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "key",
+              "field2": "issueKey"
+            }
+          ]
+        },
+        "outputDataFrom": "input2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7340,
+        680
+      ],
+      "id": "4c9fc3b1-196a-4b21-b8b3-3394f160fe8f",
+      "name": "UpdatedFields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "id",
+              "field2": "IssueId"
+            }
+          ]
+        },
+        "outputDataFrom": "input2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7340,
+        840
+      ],
+      "id": "765a95db-2b23-4839-8457-2859cdcb6000",
+      "name": "UpdatedComments"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "id",
+              "field2": "IssueId"
+            }
+          ]
+        },
+        "outputDataFrom": "input2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7300,
+        1440
+      ],
+      "id": "2871a8dc-a429-4461-9e49-47525ced93e1",
+      "name": "UpdatedComments1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "key",
+              "field2": "issueKey"
+            }
+          ]
+        },
+        "outputDataFrom": "input2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        7300,
+        1280
+      ],
+      "id": "fd258cb4-4578-453b-be2d-70f00e63c754",
+      "name": "UpdatedFields1"
+    },
+    {
+      "parameters": {
+        "content": "get the full liost of issues by key. Then for each issue, construct the information JSON (so all field updates back in a field umbrella, and all comment updates in the comment umbrella). Eac hlist ordered by change ascending.",
+        "height": 80,
+        "width": 700
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        7560,
+        580
+      ],
+      "id": "4d86df56-29f0-409b-a862-642da998a8aa",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "issueKey"
+            },
+            {
+              "fieldName": "FieldChangedOn"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        7560,
+        700
+      ],
+      "id": "e5e2c59c-ee77-4820-83f4-a9f6249a0748",
+      "name": "Sort2"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "IssueId"
+            },
+            {
+              "fieldName": "Comment.CommentUpdated"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        7560,
+        920
+      ],
+      "id": "3dce6ffc-b03c-4984-960c-4c5d7a29deaf",
+      "name": "Sort3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa9d7605-edd2-4726-a35f-4fddbb1c4e60",
+              "name": "Issue.IssueKey",
+              "value": "={{ $json.issueKey }}",
+              "type": "string"
+            },
+            {
+              "id": "6ec57079-0df2-47e8-aa8f-2e4eea9080c5",
+              "name": "Issue.FieldUpdates.FieldUpdated",
+              "value": "={{ $json.FieldUpdated }}",
+              "type": "string"
+            },
+            {
+              "id": "a6e97e85-6282-4606-9491-9be1ac2b4bdf",
+              "name": "Issue.FieldUpdates.FieldChangedFrom",
+              "value": "={{ $json.FieldChangedFrom }}",
+              "type": "string"
+            },
+            {
+              "id": "33d91dfb-a859-4788-8cde-fdfc2599913a",
+              "name": "Issue.FieldUpdates.FieldChangedTo",
+              "value": "={{ $json.FieldChangedTo }}",
+              "type": "string"
+            },
+            {
+              "id": "988c46e2-e551-4e38-af3f-1a7f708622f8",
+              "name": "Issue.FieldUpdates.FieldChangedBy",
+              "value": "={{ $json.FieldChangedBy }}",
+              "type": "string"
+            },
+            {
+              "id": "f813dbe3-527d-440f-b413-39cf3c577fc1",
+              "name": "Issue.FieldUpdates.FieldChangedOn",
+              "value": "={{ $json.FieldChangedOn }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7780,
+        700
+      ],
+      "id": "b42a88a9-11fa-474b-ac7b-a186448c09d6",
+      "name": "Edit Fields13"
+    },
+    {
+      "parameters": {
+        "jsCode": "// items is available in n8n Code node when \"Run Once for All Items\" is selected\n\nconst grouped = {};\n\nfor (const item of items) {\n  const issueObj = item.json.Issue || {};\n  const key = issueObj.IssueKey;              // <-- your grouping key\n  const fu  = issueObj.FieldUpdates || {};   // <-- the update payload\n\n  if (!key) continue;\n\n  if (!grouped[key]) {\n    grouped[key] = {\n      issueKey: key,\n      fieldUpdates: []\n    };\n  }\n\n  grouped[key].fieldUpdates.push(fu);\n}\n\n// return one n8n item per unique issue key\nreturn Object.values(grouped).map(g => ({ json: g }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8000,
+        700
+      ],
+      "id": "61bce0b0-08b3-4b1c-9af7-43c8eb0a305b",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa9d7605-edd2-4726-a35f-4fddbb1c4e60",
+              "name": "Issue.IssueId",
+              "value": "={{ $json.IssueId }}",
+              "type": "string"
+            },
+            {
+              "id": "6ec57079-0df2-47e8-aa8f-2e4eea9080c5",
+              "name": "Issue.CommentUpdates.Commenter",
+              "value": "={{ $json.Comment.Commenter }}",
+              "type": "string"
+            },
+            {
+              "id": "70291bed-c196-44fe-8699-2c2331998137",
+              "name": "Issue.CommentUpdates.CommentText",
+              "value": "={{ $json.Comment.CommentText }}",
+              "type": "string"
+            },
+            {
+              "id": "df1b1b14-52e0-4727-9456-af3fd4949f9a",
+              "name": "Issue.CommentUpdates.CommentUpdated",
+              "value": "={{ $json.Comment.CommentUpdated }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8000,
+        1080
+      ],
+      "id": "471dfacd-8f28-442d-957b-3c5702efeb18",
+      "name": "Edit Fields15"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.IssueId }}",
+        "additionalFields": {
+          "fields": "key"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        7780,
+        920
+      ],
+      "id": "5b409d29-f6b5-4196-ad56-5916a377f4c7",
+      "name": "Jira Software4",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "478499bb-c019-4fa7-838c-4662a90494bd",
+              "name": "IssueKey",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "3ca3dcad-84a9-489b-84f2-8284fddcd5fd",
+              "name": "IssueId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8060,
+        920
+      ],
+      "id": "56f95665-d60f-4de6-a363-79ce4e25086d",
+      "name": "Edit Fields16"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "IssueId",
+              "field2": "Issue.IssueId"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        8440,
+        1000
+      ],
+      "id": "4be31aa1-5c24-4528-8bba-9f8836624fea",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b7b10cb2-1e8e-4503-80dd-25c43239a252",
+              "name": "Issue",
+              "value": "={{ $json.Issue }}",
+              "type": "object"
+            },
+            {
+              "id": "9a306f21-3ff9-4ae9-9e13-14513316c435",
+              "name": "Issue.IssueKey",
+              "value": "={{ $json.IssueKey }}",
+              "type": "string"
+            },
+            {
+              "id": "5ea05d37-95ae-4449-a5a1-adfa5baa0d2e",
+              "name": "Issue.CommentUpdates",
+              "value": "={{ $json.Issue.CommentUpdates }}",
+              "type": "object"
+            },
+            {
+              "id": "f407dfa5-3f42-466c-8899-64aa2699d029",
+              "name": "Issue.CommentUpdates.Commenter",
+              "value": "={{ $json.Issue.CommentUpdates.Commenter }}",
+              "type": "string"
+            },
+            {
+              "id": "b46733a6-02ed-47fa-b41f-a7e3aced6f21",
+              "name": "Issue.CommentUpdates.CommentText",
+              "value": "={{ $json.Issue.CommentUpdates.CommentText }}",
+              "type": "string"
+            },
+            {
+              "id": "18d29a4a-5196-442b-967c-eea9c5867d7b",
+              "name": "Issue.CommentUpdates.CommentUpdated",
+              "value": "={{ $json.Issue.CommentUpdates.CommentUpdated }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8600,
+        1000
+      ],
+      "id": "f1f66d96-9652-4618-a841-6b6914560be1",
+      "name": "Edit Fields17"
+    },
+    {
+      "parameters": {
+        "jsCode": "// items is available in n8n Code node when \"Run Once for All Items\" is selected\n\nconst grouped = {};\n\nfor (const item of items) {\n  const issueObj = item.json.Issue || {};\n  const key = issueObj.IssueKey;              // <-- your grouping key\n  const fu  = issueObj.CommentUpdates || {};   // <-- the update payload\n\n  if (!key) continue;\n\n  if (!grouped[key]) {\n    grouped[key] = {\n      issueKey: key,\n      commentUpdates: []\n    };\n  }\n\n  grouped[key].commentUpdates.push(fu);\n}\n\n// return one n8n item per unique issue key\nreturn Object.values(grouped).map(g => ({ json: g }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8780,
+        960
+      ],
+      "id": "52caf291-c997-476c-97a2-2698259ea80f",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "issueKey",
+        "joinMode": "enrichInput1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        9000,
+        820
+      ],
+      "id": "6395fb9d-1fae-465c-8061-275066309a5e",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an IT support assistant at VIPR.\n\nGiven this JSON, write ONE status digest email that summarizes every issue in LinkedIssues.\n\nJSON:\n{{ JSON.stringify($json.LinkedIssues, null, 2) }}\n\nInstructions:\n- For each LinkedIssues entry, include a short section:\n  - Issue key\n  - Key field changes (bulleted)\n  - All comments, with the name of the commenter, the timestamp for the comment, and the wording on the comment (bulleted)\n- Keep it professional.\n- Make sure all timestamps, including the subject and body, are in the format dd/MM/yyyy, hh:mm.\nReturn JSON:\n{\n  \"subject\": \"VIPR ticket updates {{ $now }}\",\n  \"body\": \"...\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        9380,
+        220
+      ],
+      "id": "b90ec356-8907-4860-aae7-affff7d7aacb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        9380,
+        460
+      ],
+      "id": "fe15d928-328a-4cbf-9c54-526e2339e688",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "yp3kmwKcGiog7Tct",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "LinkedIssues",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        9880,
+        900
+      ],
+      "id": "162360f6-235b-477d-9598-1925307fbb38",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailObj = JSON.parse($json.output);\nreturn [{ json: emailObj }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9740,
+        220
+      ],
+      "id": "917e24e8-40d5-4309-b3ac-f59abad94181",
+      "name": "Code5"
+    },
+    {
+      "parameters": {
+        "sendTo": "mforeman@viprsolutions.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {
+          "senderName": "JiraUpdateBot"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        10440,
+        900
+      ],
+      "id": "967e725b-63bb-490d-be25-123fdf52419d",
+      "name": "Gmail",
+      "webhookId": "f9ff4436-3232-425e-90df-a48f5b2b6c0f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "URnqtV3yxuq2hZVk",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an application support analyst at VIPR.\n\nGiven this JSON, add HTML formatting to the following email body:\n{{ JSON.stringify($json.body, null, 2) }}\n\nInstructions:\nUse the suggested HTML formatting below as a guide:\n<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>VIPR ticket updates 2025-11-30T14:01:56.759-05:00</title>\n    <style>\n      /* Keep styles email-safe (mostly inline-friendly) */\n      body {\n        margin: 0;\n        padding: 0;\n        background: #f6f7f9;\n        font-family: Arial, Helvetica, sans-serif;\n        color: #111827;\n        line-height: 1.5;\n      }\n      .wrapper {\n        width: 100%;\n        padding: 24px 12px;\n      }\n      .container {\n        max-width: 720px;\n        margin: 0 auto;\n        background: #ffffff;\n        border: 1px solid #e5e7eb;\n        border-radius: 10px;\n        overflow: hidden;\n        box-shadow: 0 2px 8px rgba(17, 24, 39, 0.06);\n      }\n      .header {\n        padding: 20px 24px;\n        background: #0b5fff;\n        color: #ffffff;\n      }\n      .header h1 {\n        margin: 0;\n        font-size: 18px;\n        font-weight: 700;\n      }\n      .content {\n        padding: 20px 24px;\n        font-size: 14px;\n      }\n      .issue {\n        border: 1px solid #e5e7eb;\n        border-radius: 8px;\n        padding: 14px 16px;\n        margin: 12px 0;\n        background: #fafafa;\n      }\n      .issue-title {\n        font-weight: 700;\n        margin: 0 0 8px 0;\n        font-size: 15px;\n      }\n      .label {\n        font-weight: 700;\n      }\n      ul {\n        margin: 6px 0 0 18px;\n        padding: 0;\n      }\n      li {\n        margin: 2px 0;\n      }\n      .footer {\n        padding: 16px 24px;\n        font-size: 12px;\n        color: #6b7280;\n        border-top: 1px solid #e5e7eb;\n        background: #ffffff;\n      }\n      .signature {\n        margin-top: 12px;\n      }\n    </style>\n  </head>\n\n  <body>\n    <div class=\"wrapper\">\n      <div class=\"container\">\n        <div class=\"header\">\n          <h1>VIPR ticket updates 2025-11-30T14:01:56.759-05:00</h1>\n        </div>\n\n        <div class=\"content\">\n          <p>Dear Team,</p>\n\n          <p>Please find below the latest updates on the linked issues:</p>\n\n          <div class=\"issue\">\n            <p class=\"issue-title\">Issue Key: DS-2649</p>\n            <p><span class=\"label\">Current Outcome:</span> Done</p>\n            <p class=\"label\" style=\"margin-bottom:4px;\">Key Field Changes:</p>\n            <ul>\n              <li>Assignee changed from Neelesh Katkhade to None</li>\n              <li>Status changed from In Progress to Done</li>\n              <li>Resolution set to Done</li>\n            </ul>\n            <p style=\"margin-top:8px;\"><span class=\"label\">Comments:</span> All instances upgraded successfully.</p>\n          </div>\n\n          <div class=\"issue\">\n            <p class=\"issue-title\">Issue Key: DS-2777</p>\n            <p><span class=\"label\">Current Outcome:</span> Done</p>\n            <p class=\"label\" style=\"margin-bottom:4px;\">Key Field Changes:</p>\n            <ul>\n              <li>Assignee changed from Neelesh Katkhade to None</li>\n              <li>Status changed from In Progress to Done</li>\n              <li>Resolution set to Done</li>\n            </ul>\n            <p style=\"margin-top:8px;\"><span class=\"label\">Comments:</span> Script created in cloudshell with files listed.</p>\n          </div>\n\n          <div class=\"issue\">\n            <p class=\"issue-title\">Issue Key: SD-16589</p>\n            <p><span class=\"label\">Current Outcome:</span> With Support</p>\n            <p class=\"label\" style=\"margin-bottom:4px;\">Key Field Changes:</p>\n            <ul>\n              <li>Status changed from Waiting For Customer to With Support</li>\n            </ul>\n          </div>\n\n          <div class=\"issue\">\n            <p class=\"issue-title\">Issue Key: SD-20292</p>\n            <p><span class=\"label\">Current Outcome:</span> Resolved</p>\n            <p class=\"label\" style=\"margin-bottom:4px;\">Key Field Changes:</p>\n            <ul>\n              <li>Status changed from Request Logged to Resolved</li>\n              <li>Resolution set to Done</li>\n            </ul>\n          </div>\n\n          <div class=\"issue\">\n            <p class=\"issue-title\">Issue Key: SD-22599</p>\n            <p><span class=\"label\">Current Outcome:</span> With Support</p>\n            <p class=\"label\" style=\"margin-bottom:4px;\">Key Field Changes:</p>\n            <ul>\n              <li>Status changed from Request Logged to With Support</li>\n            </ul>\n          </div>\n\n          <p>\n            Thank you for your attention to these updates. If you have any questions or\n            require further information, please feel free to reach out.\n          </p>\n\n          <p class=\"signature\">\n            Best regards,<br />\n            VIPR Support Team\n          </p>\n        </div>\n\n        <div class=\"footer\">\n          This is an automated update from VIPR workflows.\n        </div>\n      </div>\n    </div>\n  </body>\n</html>\n\nReturn JSON:\n{\n  \"subject\": \"VIPR ticket updates {{ $now }}\",\n  \"body\": \"...\"\n}\n\nwhere JSON body value is replaced with your HTML-formatted email body.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        9980,
+        220
+      ],
+      "id": "ae5ef7ba-fdb4-4c5b-badf-758fdfa59c62",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        9980,
+        460
+      ],
+      "id": "3e1474ff-34b0-4e10-b690-3debe47b3238",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "yp3kmwKcGiog7Tct",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailObj = JSON.parse($json.output);\nreturn [{ json: emailObj }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10320,
+        220
+      ],
+      "id": "310d42ae-6472-4bf1-a087-eb76f953f50c",
+      "name": "Code6"
+    },
+    {
+      "parameters": {
+        "content": "Removed the AI Agent links as I hit the token threshold.",
+        "height": 500,
+        "width": 1200,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        9320,
+        140
+      ],
+      "id": "20c37a50-4f7e-4875-8921-97864b7d52f6",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "IssueId",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        8220,
+        940
+      ],
+      "id": "db6890e4-0834-4cc1-a07c-aaaa9910c285",
+      "name": "Remove Duplicates1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (Run Once for All Items)\n// Input: your JSON (array containing an object with LinkedIssues)\n// Output: { subject, body }\n\nconst input = items[0].json;\n\n// Your input is an array with one object that has LinkedIssues\nconst root = Array.isArray(input) ? input[0] : input;\nconst linkedIssues = root.LinkedIssues || [];\n\n// ---------- Helpers ----------\nconst escapeHtml = (s) =>\n  String(s ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\n// Format to UK datetime: dd/mm/yyyy hh:mm (24h)\nconst formatUkDateTime = (dateInput) => {\n  if (!dateInput) return '';\n  const d = new Date(dateInput);\n\n  const parts = new Intl.DateTimeFormat('en-GB', {\n    timeZone: 'Europe/London',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false,\n  })\n    .formatToParts(d)\n    .reduce((acc, p) => {\n      acc[p.type] = p.value;\n      return acc;\n    }, {});\n\n  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;\n};\n\n// \"Now\" in UK format for subject + header\nconst now = new Date();\nconst nowUk = formatUkDateTime(now);\n\n// Every field update, shown verbosely\nconst formatFieldChangeText = (u) => {\n  const field = u.FieldUpdated ?? 'Field';\n  const from = u.FieldChangedFrom ?? 'None';\n  const to = u.FieldChangedTo ?? 'None';\n  return `${escapeHtml(field)} changed from ${escapeHtml(from)} to ${escapeHtml(to)}`;\n};\n\n// Field changes block with bold \"by — date\" header per change\nconst formatFieldChangesBlock = (fieldUpdates = []) => {\n  if (!fieldUpdates.length) {\n    return `\n      <p class=\"label\" style=\"margin-bottom:4px;\">Field Changes:</p>\n      <p>None</p>\n    `;\n  }\n\n  const lis = fieldUpdates.map(u => {\n    const who = escapeHtml(u.FieldChangedBy ?? 'Unknown');\n    const when = escapeHtml(formatUkDateTime(u.FieldChangedOn));\n    const changeText = formatFieldChangeText(u);\n    return `\n      <li>\n        <div><strong>${who} — ${when}</strong></div>\n        <div>${changeText}</div>\n      </li>\n    `;\n  }).join('\\n');\n\n  return `\n    <p class=\"label\" style=\"margin-bottom:4px;\">Field Changes:</p>\n    <ul>\n      ${lis}\n    </ul>\n  `;\n};\n\n// Comment blocks (no filtering)\nconst formatCommentsBlock = (commentUpdates = []) => {\n  if (!commentUpdates.length) return '';\n\n  const lis = commentUpdates.map(c => {\n    const who = escapeHtml(c.Commenter ?? 'Unknown');\n    const when = escapeHtml(formatUkDateTime(c.CommentUpdated));\n    const text = escapeHtml(c.CommentText ?? '');\n    return `\n      <li>\n        <div><strong>${who} — ${when}</strong></div>\n        <div>${text}</div>\n      </li>\n    `;\n  }).join('\\n');\n\n  return `\n    <p class=\"label\" style=\"margin-top:10px; margin-bottom:4px;\">Comments:</p>\n    <ul>\n      ${lis}\n    </ul>\n  `;\n};\n\n// ---------- Build per-issue HTML blocks ----------\nconst issueBlocks = linkedIssues.map(issue => {\n  const key = escapeHtml(issue.issueKey || issue.IssueKey);\n  const summary = escapeHtml(\n    issue.IssueSummary || issue.issueSummary || issue.summary || ''\n  );\n\n  const fieldUpdates = issue.fieldUpdates || [];\n  const commentUpdates = issue.commentUpdates || [];\n\n  return `\n    <div class=\"issue\">\n      <p class=\"issue-title\">${key}: ${summary}</p>\n\n      ${formatFieldChangesBlock(fieldUpdates)}\n      ${formatCommentsBlock(commentUpdates)}\n    </div>\n  `;\n}).join('\\n');\n\n// ---------- Full HTML body (tweaked palette) ----------\nconst body = `<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>VIPR ticket updates ${nowUk}</title>\n    <style>\n      body {\n        margin: 0;\n        padding: 0;\n        background: #070A1F; /* deep navy */\n        font-family: Arial, Helvetica, sans-serif;\n        color: #E6E9F2;      /* soft near-white */\n        line-height: 1.5;\n      }\n\n      .wrapper {\n        width: 100%;\n        padding: 26px 12px;\n      }\n\n      .container {\n        max-width: 740px;\n        margin: 0 auto;\n        background: #0B102B; /* indigo navy */\n        border: 1px solid #1B2350;\n        border-radius: 12px;\n        overflow: hidden;\n        box-shadow: 0 6px 18px rgba(0,0,0,0.35);\n      }\n\n      .header {\n        padding: 22px 24px;\n        background: radial-gradient(120% 140% at 10% 0%, #7C3AED 0%, #4C1D95 40%, #0B102B 100%);\n        color: #ffffff;\n        border-bottom: 1px solid #232B5C;\n      }\n\n      .header h1 {\n        margin: 0;\n        font-size: 18px;\n        font-weight: 800;\n        letter-spacing: 0.3px;\n      }\n\n      .content {\n        padding: 20px 24px;\n        font-size: 14px;\n        color: #E6E9F2;\n      }\n\n      .content p {\n        margin: 10px 0;\n      }\n\n      /* (1) lighter issue cards */\n      .issue {\n        border: 1px solid #222B57;\n        border-radius: 10px;\n        padding: 14px 16px;\n        margin: 14px 0;\n        background: #171F45; /* lighter navy card */\n        box-shadow: inset 0 0 0 1px rgba(124,58,237,0.08);\n      }\n\n      .issue-title {\n        font-weight: 800;\n        margin: 0 0 10px 0;\n        font-size: 15px;\n        color: #F5C542; /* warm gold */\n      }\n\n      .label {\n        font-weight: 700;\n        color: #C7CBE0;\n      }\n\n      ul {\n        margin: 6px 0 0 18px;\n        padding: 0;\n      }\n\n      li {\n        margin: 8px 0;\n      }\n\n      /* (2) deeper purple for names/timestamps */\n      li strong {\n        color: #B38BFF; /* darker purple highlight */\n      }\n\n      .footer {\n        padding: 16px 24px;\n        font-size: 12px;\n        color: #A8AFC7;\n        border-top: 1px solid #232B5C;\n        background: #0B102B;\n      }\n\n      .signature {\n        margin-top: 14px;\n      }\n\n      a {\n        color: #A78BFA; /* electric purple link */\n        text-decoration: none;\n      }\n    </style>\n  </head>\n\n  <body>\n    <div class=\"wrapper\">\n      <div class=\"container\">\n        <div class=\"header\">\n          <h1>VIPR ticket updates ${nowUk}</h1>\n        </div>\n\n        <div class=\"content\">\n          <p>Seasons Greetings,</p>\n\n          <p>I've noticed there have been some updates on issues that you aren't a watcher on, but thought they might interest you. Consider giving these tickets a watch!</p>\n\n          ${issueBlocks}\n\n          <p>\n            If you have any feedback for me, please feel free to reach out to Mike.\n          </p>\n\n          <p class=\"signature\">\n            Good luck out there!<br />\n            JiraUpdateBot\n          </p>\n        </div>\n\n        <div class=\"footer\">\n          This is an automated update from VIPR workflows.\n        </div>\n      </div>\n    </div>\n  </body>\n</html>`;\n\n// ---------- Final JSON output ----------\nreturn [{\n  json: {\n    subject: `VIPR ticket updates ${nowUk}`,\n    body,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10160,
+        900
+      ],
+      "id": "9aaaff0c-e6c3-4460-a544-22ce61d6a30c",
+      "name": "Code7"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.issueKey }}",
+        "additionalFields": {
+          "fields": "summary"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        9240,
+        720
+      ],
+      "id": "3056eca2-1ae8-4c9c-ba3b-ab47a53d511c",
+      "name": "Jira Software6",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "478499bb-c019-4fa7-838c-4662a90494bd",
+              "name": "IssueKey",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "d2d22c8c-95de-4c9e-88bd-69d43d4dbfac",
+              "name": "IssueSummary",
+              "value": "={{ $json.fields.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        9420,
+        720
+      ],
+      "id": "a10296d5-29d2-4351-b58a-ac37639105cb",
+      "name": "Edit Fields22"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "IssueKey",
+              "field2": "issueKey"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        9640,
+        900
+      ],
+      "id": "66562a70-720b-448e-9806-5a45153e58fc",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "content": "Are there any links to tickets I DO watch?",
+        "height": 320,
+        "width": 1020
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4780,
+        680
+      ],
+      "id": "501094e9-74e4-469b-8e7c-8f2468852ab1",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        780
+      ],
+      "id": "ca2373b3-bf81-4514-b9df-4bce14466e18",
+      "name": "Jira Software7",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cb6f398-2d0c-42bc-9fe6-1df9bbbbfe4d",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "678b7ce0-644e-401a-9fe9-b15cf16fe477",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "35868451-fb2e-49b4-bd50-71ab13d520a8",
+              "name": "fields.issuelinks",
+              "value": "={{ $json.fields.issuelinks }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4980,
+        780
+      ],
+      "id": "7a6648ff-be3e-44a1-9b04-14e70fc5a128",
+      "name": "Edit Fields21"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "fields.issuelinks",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "IssueLink"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        5160,
+        780
+      ],
+      "id": "c6565309-7313-4195-af36-039fce3327d9",
+      "name": "Split Out8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81da9328-107d-4652-a8b2-b107aa70b464",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "733bfb6c-9408-4478-bf0b-749c8a8e6ca7",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "7eefcd64-4176-4002-bac4-182b0f4475ad",
+              "name": "LinkedIssueKey",
+              "value": "={{ $json.IssueLink?.inwardIssue?.key ?? $json.IssueLink?.outwardIssue?.key ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "d7dd7985-9c0e-4574-ab00-f8b157052f1f",
+              "name": "LinkedIssueSummary",
+              "value": "={{ $json.IssueLink?.inwardIssue?.fields.summary ?? $json.IssueLink?.outwardIssue?.fields.summary ?? null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5380,
+        780
+      ],
+      "id": "78126cb1-fbc0-47ae-a0f9-1c94cf914d05",
+      "name": "Edit Fields23"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2d10b6b-ff1d-4fe8-aaa6-23ef9ab8e653",
+              "name": "LinkedIssueKey",
+              "value": "={{ $json.LinkedIssueKey }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5560,
+        780
+      ],
+      "id": "3267f74d-768e-4e70-8554-51ef537d8fae",
+      "name": "Edit Fields24"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "733bfb6c-9408-4478-bf0b-749c8a8e6ca7",
+              "name": "key",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5560,
+        960
+      ],
+      "id": "f8bee8b3-2841-4c0f-aa32-74023b2077c3",
+      "name": "Edit Fields25"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "LinkedIssueKey",
+              "field2": "key"
+            }
+          ]
+        },
+        "joinMode": "keepNonMatches",
+        "outputDataFrom": "input1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        5820,
+        780
+      ],
+      "id": "8cdd8095-1496-4430-9dda-51de9538ad66",
+      "name": "Merge6"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "key",
+              "field2": "LinkedIssueKey"
+            }
+          ]
+        },
+        "outputDataFrom": "input1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        6060,
+        520
+      ],
+      "id": "9e31c15d-65b9-4a8d-b8bf-bcec131d215e",
+      "name": "Merge8"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "issueKey"
+            },
+            {
+              "fieldName": "FieldChangedOn"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        7560,
+        1260
+      ],
+      "id": "dd61f0b3-a6ed-4873-8e83-c1fea85c2c70",
+      "name": "Sort"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "IssueId"
+            },
+            {
+              "fieldName": "Comment.CommentUpdated"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        7560,
+        1480
+      ],
+      "id": "349f04c2-e1fb-4a85-a9c3-69ba523e9450",
+      "name": "Sort4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa9d7605-edd2-4726-a35f-4fddbb1c4e60",
+              "name": "Issue.IssueKey",
+              "value": "={{ $json.issueKey }}",
+              "type": "string"
+            },
+            {
+              "id": "6ec57079-0df2-47e8-aa8f-2e4eea9080c5",
+              "name": "Issue.FieldUpdates.FieldUpdated",
+              "value": "={{ $json.FieldUpdated }}",
+              "type": "string"
+            },
+            {
+              "id": "a6e97e85-6282-4606-9491-9be1ac2b4bdf",
+              "name": "Issue.FieldUpdates.FieldChangedFrom",
+              "value": "={{ $json.FieldChangedFrom }}",
+              "type": "string"
+            },
+            {
+              "id": "33d91dfb-a859-4788-8cde-fdfc2599913a",
+              "name": "Issue.FieldUpdates.FieldChangedTo",
+              "value": "={{ $json.FieldChangedTo }}",
+              "type": "string"
+            },
+            {
+              "id": "988c46e2-e551-4e38-af3f-1a7f708622f8",
+              "name": "Issue.FieldUpdates.FieldChangedBy",
+              "value": "={{ $json.FieldChangedBy }}",
+              "type": "string"
+            },
+            {
+              "id": "f813dbe3-527d-440f-b413-39cf3c577fc1",
+              "name": "Issue.FieldUpdates.FieldChangedOn",
+              "value": "={{ $json.FieldChangedOn }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        7780,
+        1260
+      ],
+      "id": "2a62b00e-8edf-442a-96c7-88371cd743bb",
+      "name": "Edit Fields14"
+    },
+    {
+      "parameters": {
+        "jsCode": "// items is available in n8n Code node when \"Run Once for All Items\" is selected\n\nconst grouped = {};\n\nfor (const item of items) {\n  const issueObj = item.json.Issue || {};\n  const key = issueObj.IssueKey;              // <-- your grouping key\n  const fu  = issueObj.FieldUpdates || {};   // <-- the update payload\n\n  if (!key) continue;\n\n  if (!grouped[key]) {\n    grouped[key] = {\n      issueKey: key,\n      fieldUpdates: []\n    };\n  }\n\n  grouped[key].fieldUpdates.push(fu);\n}\n\n// return one n8n item per unique issue key\nreturn Object.values(grouped).map(g => ({ json: g }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8000,
+        1260
+      ],
+      "id": "3c2a5071-b3c4-459d-a22c-7e6601be36f6",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa9d7605-edd2-4726-a35f-4fddbb1c4e60",
+              "name": "Issue.IssueId",
+              "value": "={{ $json.IssueId }}",
+              "type": "string"
+            },
+            {
+              "id": "6ec57079-0df2-47e8-aa8f-2e4eea9080c5",
+              "name": "Issue.CommentUpdates.Commenter",
+              "value": "={{ $json.Comment.Commenter }}",
+              "type": "string"
+            },
+            {
+              "id": "70291bed-c196-44fe-8699-2c2331998137",
+              "name": "Issue.CommentUpdates.CommentText",
+              "value": "={{ $json.Comment.CommentText }}",
+              "type": "string"
+            },
+            {
+              "id": "df1b1b14-52e0-4727-9456-af3fd4949f9a",
+              "name": "Issue.CommentUpdates.CommentUpdated",
+              "value": "={{ $json.Comment.CommentUpdated }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8000,
+        1640
+      ],
+      "id": "fdcfde6f-69c5-4c79-a7f7-f71ef15c53b2",
+      "name": "Edit Fields18"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.IssueId }}",
+        "additionalFields": {
+          "fields": "key"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        7780,
+        1480
+      ],
+      "id": "f6086063-8587-4ea4-88ae-b71445246648",
+      "name": "Jira Software5",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "478499bb-c019-4fa7-838c-4662a90494bd",
+              "name": "IssueKey",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "3ca3dcad-84a9-489b-84f2-8284fddcd5fd",
+              "name": "IssueId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8060,
+        1480
+      ],
+      "id": "ea0d4dd1-298e-463e-a8b6-66574bf03e70",
+      "name": "Edit Fields19"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "IssueId",
+              "field2": "Issue.IssueId"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        8440,
+        1560
+      ],
+      "id": "784e0466-1bd6-4f9e-ab27-1cefd3c1683f",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b7b10cb2-1e8e-4503-80dd-25c43239a252",
+              "name": "Issue",
+              "value": "={{ $json.Issue }}",
+              "type": "object"
+            },
+            {
+              "id": "9a306f21-3ff9-4ae9-9e13-14513316c435",
+              "name": "Issue.IssueKey",
+              "value": "={{ $json.IssueKey }}",
+              "type": "string"
+            },
+            {
+              "id": "5ea05d37-95ae-4449-a5a1-adfa5baa0d2e",
+              "name": "Issue.CommentUpdates",
+              "value": "={{ $json.Issue.CommentUpdates }}",
+              "type": "object"
+            },
+            {
+              "id": "f407dfa5-3f42-466c-8899-64aa2699d029",
+              "name": "Issue.CommentUpdates.Commenter",
+              "value": "={{ $json.Issue.CommentUpdates.Commenter }}",
+              "type": "string"
+            },
+            {
+              "id": "b46733a6-02ed-47fa-b41f-a7e3aced6f21",
+              "name": "Issue.CommentUpdates.CommentText",
+              "value": "={{ $json.Issue.CommentUpdates.CommentText }}",
+              "type": "string"
+            },
+            {
+              "id": "18d29a4a-5196-442b-967c-eea9c5867d7b",
+              "name": "Issue.CommentUpdates.CommentUpdated",
+              "value": "={{ $json.Issue.CommentUpdates.CommentUpdated }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8600,
+        1560
+      ],
+      "id": "d963717c-da7b-4e87-b317-daaebb1d0280",
+      "name": "Edit Fields20"
+    },
+    {
+      "parameters": {
+        "jsCode": "// items is available in n8n Code node when \"Run Once for All Items\" is selected\n\nconst grouped = {};\n\nfor (const item of items) {\n  const issueObj = item.json.Issue || {};\n  const key = issueObj.IssueKey;              // <-- your grouping key\n  const fu  = issueObj.CommentUpdates || {};   // <-- the update payload\n\n  if (!key) continue;\n\n  if (!grouped[key]) {\n    grouped[key] = {\n      issueKey: key,\n      commentUpdates: []\n    };\n  }\n\n  grouped[key].commentUpdates.push(fu);\n}\n\n// return one n8n item per unique issue key\nreturn Object.values(grouped).map(g => ({ json: g }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8780,
+        1520
+      ],
+      "id": "19cb9d29-fd3e-4021-9a08-7a5b18e1670d",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "issueKey",
+        "joinMode": "enrichInput1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        9000,
+        1380
+      ],
+      "id": "60c8605b-f061-4130-81a2-4adb352f7876",
+      "name": "Merge7"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "LinkedIssues",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        9880,
+        1460
+      ],
+      "id": "7cf2c2c1-3624-47c1-aba4-4ce52c515c87",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "sendTo": "mforeman@viprsolutions.com",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {
+          "senderName": "JiraUpdateBot"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        10440,
+        1460
+      ],
+      "id": "eaa0b575-cc60-476c-89e7-c7304b26256a",
+      "name": "Gmail1",
+      "webhookId": "629d81bb-df04-46eb-a7a7-6a82da5b427d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "URnqtV3yxuq2hZVk",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "IssueId",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        8220,
+        1500
+      ],
+      "id": "6909e650-0fad-467a-9401-eaf9dc858fd9",
+      "name": "Remove Duplicates2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node (Run Once for All Items)\n// Input: your JSON (array containing an object with LinkedIssues)\n// Output: { subject, body }\n\nconst input = items[0].json;\n\n// Your input is an array with one object that has LinkedIssues\nconst root = Array.isArray(input) ? input[0] : input;\nconst linkedIssues = root.LinkedIssues || [];\n\n// ---------- Helpers ----------\nconst escapeHtml = (s) =>\n  String(s ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\n// Format to UK datetime: dd/mm/yyyy hh:mm (24h)\nconst formatUkDateTime = (dateInput) => {\n  if (!dateInput) return '';\n  const d = new Date(dateInput);\n\n  const parts = new Intl.DateTimeFormat('en-GB', {\n    timeZone: 'Europe/London',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false,\n  })\n    .formatToParts(d)\n    .reduce((acc, p) => {\n      acc[p.type] = p.value;\n      return acc;\n    }, {});\n\n  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;\n};\n\n// \"Now\" in UK format for subject + header\nconst now = new Date();\nconst nowUk = formatUkDateTime(now);\n\n// Every field update, shown verbosely\nconst formatFieldChangeText = (u) => {\n  const field = u.FieldUpdated ?? 'Field';\n  const from = u.FieldChangedFrom ?? 'None';\n  const to = u.FieldChangedTo ?? 'None';\n  return `${escapeHtml(field)} changed from ${escapeHtml(from)} to ${escapeHtml(to)}`;\n};\n\n// Field changes block with bold \"by — date\" header per change\nconst formatFieldChangesBlock = (fieldUpdates = []) => {\n  if (!fieldUpdates.length) {\n    return `\n      <p class=\"label\" style=\"margin-bottom:4px;\">Field Changes:</p>\n      <p>None</p>\n    `;\n  }\n\n  const lis = fieldUpdates.map(u => {\n    const who = escapeHtml(u.FieldChangedBy ?? 'Unknown');\n    const when = escapeHtml(formatUkDateTime(u.FieldChangedOn));\n    const changeText = formatFieldChangeText(u);\n    return `\n      <li>\n        <div><strong>${who} — ${when}</strong></div>\n        <div>${changeText}</div>\n      </li>\n    `;\n  }).join('\\n');\n\n  return `\n    <p class=\"label\" style=\"margin-bottom:4px;\">Field Changes:</p>\n    <ul>\n      ${lis}\n    </ul>\n  `;\n};\n\n// Comment blocks (no filtering)\nconst formatCommentsBlock = (commentUpdates = []) => {\n  if (!commentUpdates.length) return '';\n\n  const lis = commentUpdates.map(c => {\n    const who = escapeHtml(c.Commenter ?? 'Unknown');\n    const when = escapeHtml(formatUkDateTime(c.CommentUpdated));\n    const text = escapeHtml(c.CommentText ?? '');\n    return `\n      <li>\n        <div><strong>${who} — ${when}</strong></div>\n        <div>${text}</div>\n      </li>\n    `;\n  }).join('\\n');\n\n  return `\n    <p class=\"label\" style=\"margin-top:10px; margin-bottom:4px;\">Comments:</p>\n    <ul>\n      ${lis}\n    </ul>\n  `;\n};\n\n// ---------- Build per-issue HTML blocks ----------\nconst issueBlocks = linkedIssues.map(issue => {\n  const key = escapeHtml(issue.issueKey || issue.IssueKey);\n  const summary = escapeHtml(\n    issue.IssueSummary || issue.issueSummary || issue.summary || ''\n  );\n\n  const fieldUpdates = issue.fieldUpdates || [];\n  const commentUpdates = issue.commentUpdates || [];\n\n  return `\n    <div class=\"issue\">\n      <p class=\"issue-title\">${key}: ${summary}</p>\n\n      ${formatFieldChangesBlock(fieldUpdates)}\n      ${formatCommentsBlock(commentUpdates)}\n    </div>\n  `;\n}).join('\\n');\n\n// ---------- Full HTML body (tweaked palette) ----------\nconst body = `<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>VIPR ticket updates ${nowUk}</title>\n    <style>\n      body {\n        margin: 0;\n        padding: 0;\n        background: #070A1F; /* deep navy */\n        font-family: Arial, Helvetica, sans-serif;\n        color: #E6E9F2;      /* soft near-white */\n        line-height: 1.5;\n      }\n\n      .wrapper {\n        width: 100%;\n        padding: 26px 12px;\n      }\n\n      .container {\n        max-width: 740px;\n        margin: 0 auto;\n        background: #0B102B; /* indigo navy */\n        border: 1px solid #1B2350;\n        border-radius: 12px;\n        overflow: hidden;\n        box-shadow: 0 6px 18px rgba(0,0,0,0.35);\n      }\n\n      .header {\n        padding: 22px 24px;\n        background: radial-gradient(120% 140% at 10% 0%, #7C3AED 0%, #4C1D95 40%, #0B102B 100%);\n        color: #ffffff;\n        border-bottom: 1px solid #232B5C;\n      }\n\n      .header h1 {\n        margin: 0;\n        font-size: 18px;\n        font-weight: 800;\n        letter-spacing: 0.3px;\n      }\n\n      .content {\n        padding: 20px 24px;\n        font-size: 14px;\n        color: #E6E9F2;\n      }\n\n      .content p {\n        margin: 10px 0;\n      }\n\n      /* (1) lighter issue cards */\n      .issue {\n        border: 1px solid #222B57;\n        border-radius: 10px;\n        padding: 14px 16px;\n        margin: 14px 0;\n        background: #171F45; /* lighter navy card */\n        box-shadow: inset 0 0 0 1px rgba(124,58,237,0.08);\n      }\n\n      .issue-title {\n        font-weight: 800;\n        margin: 0 0 10px 0;\n        font-size: 15px;\n        color: #F5C542; /* warm gold */\n      }\n\n      .label {\n        font-weight: 700;\n        color: #C7CBE0;\n      }\n\n      ul {\n        margin: 6px 0 0 18px;\n        padding: 0;\n      }\n\n      li {\n        margin: 8px 0;\n      }\n\n      /* (2) deeper purple for names/timestamps */\n      li strong {\n        color: #B38BFF; /* darker purple highlight */\n      }\n\n      .footer {\n        padding: 16px 24px;\n        font-size: 12px;\n        color: #A8AFC7;\n        border-top: 1px solid #232B5C;\n        background: #0B102B;\n      }\n\n      .signature {\n        margin-top: 14px;\n      }\n\n      a {\n        color: #A78BFA; /* electric purple link */\n        text-decoration: none;\n      }\n    </style>\n  </head>\n\n  <body>\n    <div class=\"wrapper\">\n      <div class=\"container\">\n        <div class=\"header\">\n          <h1>VIPR ticket updates ${nowUk}</h1>\n        </div>\n\n        <div class=\"content\">\n          <p>Happy Holidays,</p>\n\n          <p>Here are the latest updates on tickets you're involved in.</p>\n\n          ${issueBlocks}\n\n          <p>\n            If you have any feedback for me, please feel free to reach out to Mike.\n          </p>\n\n          <p class=\"signature\">\n            Good luck out there!<br />\n            JiraUpdateBot\n          </p>\n        </div>\n\n        <div class=\"footer\">\n          This is an automated update from VIPR workflows.\n        </div>\n      </div>\n    </div>\n  </body>\n</html>`;\n\n// ---------- Final JSON output ----------\nreturn [{\n  json: {\n    subject: `VIPR ticket updates ${nowUk}`,\n    body,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10160,
+        1460
+      ],
+      "id": "71ab5e56-fdab-45b9-a9b7-e57e344514f5",
+      "name": "Code8"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "issueKey": "={{ $json.issueKey }}",
+        "additionalFields": {
+          "fields": "summary"
+        }
+      },
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        9240,
+        1280
+      ],
+      "id": "d8d442a6-5678-49d5-986d-ebbf72700e2a",
+      "name": "Jira Software8",
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "478499bb-c019-4fa7-838c-4662a90494bd",
+              "name": "IssueKey",
+              "value": "={{ $json.key }}",
+              "type": "string"
+            },
+            {
+              "id": "d2d22c8c-95de-4c9e-88bd-69d43d4dbfac",
+              "name": "IssueSummary",
+              "value": "={{ $json.fields.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        9420,
+        1280
+      ],
+      "id": "a58b94c6-96af-424b-bb65-28805a4d2e12",
+      "name": "Edit Fields26"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "IssueKey",
+              "field2": "issueKey"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        9640,
+        1460
+      ],
+      "id": "50febd96-15d7-4a65-b6aa-546fac9e7db7",
+      "name": "Merge9"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        280
+      ],
+      "id": "a525e7dd-1a8c-43d0-b9d5-82849156f00d",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "46c6fada-8f11-4915-b8c3-627e639a00a4",
+              "leftValue": "={{ $now.hour }}",
+              "rightValue": 8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "551964cc-f75f-4eae-87dc-5fb110b5c5d5",
+              "leftValue": "={{ $now.hour }}",
+              "rightValue": 18,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -40,
+        280
+      ],
+      "id": "99069129-0066-4d4e-87ed-8b764685ba38",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "id": "8923c58b-ed9b-458a-8389-23a986c04cc7",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code: Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code: Extract and Accumulate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Init": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Extract and Accumulate": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Final Output": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Jira Software",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Jira Software1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Jira Software2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "Split Out4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Split Out5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out5": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Split Out6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out6": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out7": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields8": {
+      "main": [
+        [
+          {
+            "node": "Filter2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields9": {
+      "main": [
+        [
+          {
+            "node": "Watcher Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Jira Software3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter3": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Other Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Jira Software2": {
+      "main": [
+        [
+          {
+            "node": "Compare Datasets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare Datasets": {
+      "main": [
+        [
+          {
+            "node": "Jira Software7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Watcher Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields10": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Filter4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter4": {
+      "main": [
+        [
+          {
+            "node": "Core Items with Updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comments": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Other Changes": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linked Items with updates": {
+      "main": [
+        [
+          {
+            "node": "UpdatedFields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "UpdatedComments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields11": {
+      "main": [
+        [
+          {
+            "node": "UpdatedComments",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "UpdatedComments1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields12": {
+      "main": [
+        [
+          {
+            "node": "UpdatedFields",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "UpdatedFields1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Core Items with Updates": {
+      "main": [
+        [
+          {
+            "node": "UpdatedFields1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "UpdatedComments1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdatedFields1": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdatedComments1": {
+      "main": [
+        [
+          {
+            "node": "Sort4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdatedFields": {
+      "main": [
+        [
+          {
+            "node": "Sort2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdatedComments": {
+      "main": [
+        [
+          {
+            "node": "Sort3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields13": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort3": {
+      "main": [
+        [
+          {
+            "node": "Jira Software4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields16": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields15": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields17",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields17": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Jira Software6",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code5": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code6": {
+      "main": [
+        []
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code7": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software6": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields22",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields22": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software7": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields21",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields21": {
+      "main": [
+        [
+          {
+            "node": "Split Out8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out8": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields23",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields23": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields24",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields25",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields24": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields25": {
+      "main": [
+        [
+          {
+            "node": "Merge6",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge6": {
+      "main": [
+        [
+          {
+            "node": "Merge8",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge8": {
+      "main": [
+        [
+          {
+            "node": "Linked Items with updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort4": {
+      "main": [
+        [
+          {
+            "node": "Jira Software5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields18",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields14": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields18": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Jira Software5": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields19",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields19": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields20",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields20": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Merge7",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge7": {
+      "main": [
+        [
+          {
+            "node": "Jira Software8",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge9",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Code8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates2": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code8": {
+      "main": [
+        [
+          {
+            "node": "Gmail1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Software8": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields26",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields26": {
+      "main": [
+        [
+          {
+            "node": "Merge9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge9": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "554c0bcb-bf25-4e22-8ade-a0db6b79d228",
+  "triggerCount": 0,
+  "tags": []
+}

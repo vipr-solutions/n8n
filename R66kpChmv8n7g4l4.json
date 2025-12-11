@@ -1,0 +1,89 @@
+{
+  "createdAt": "2025-11-28T18:17:32.380Z",
+  "updatedAt": "2025-12-01T10:02:58.021Z",
+  "id": "R66kpChmv8n7g4l4",
+  "name": "My workflow 11",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9614b666-68e6-4cfc-82de-e480ccc8d05e",
+      "name": "Read Template",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javascript",
+        "jsCode": "// Add a new field called 'myNewField' to the JSON of the item\n$input.item.json.myNewField = 1;\n\nreturn $input.item;"
+      },
+      "id": "77e7eabb-f9bd-4928-9940-4afc68839b56",
+      "name": "Build Binder Instructions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        580,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        -120
+      ],
+      "id": "a7943f8f-0129-41c7-a0d6-2b80d4b0fb17",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://intrali-training.viprsolutions.com/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -340,
+        -120
+      ],
+      "id": "0b46f1fc-fc6a-4140-9886-752bc280c6d2",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Read Template": {
+      "main": [
+        []
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "3352c665-3aba-4671-b73c-34a75b62c5e8",
+  "triggerCount": 0,
+  "tags": []
+}

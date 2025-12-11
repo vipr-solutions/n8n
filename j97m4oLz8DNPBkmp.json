@@ -1,0 +1,159 @@
+{
+  "createdAt": "2025-10-31T14:52:22.206Z",
+  "updatedAt": "2025-11-07T16:24:35.073Z",
+  "id": "j97m4oLz8DNPBkmp",
+  "name": "Jon Test",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "path": "7c13735d-8caf-46fa-96eb-c9951693a518",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1340,
+        -120
+      ],
+      "id": "e378587e-3b33-4c6a-a6de-7b6fd57b251a",
+      "name": "Webhook",
+      "webhookId": "7c13735d-8caf-46fa-96eb-c9951693a518"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b8a5e3e4-d029-4e76-a204-5c9c188ce479",
+              "leftValue": "={{ Object.keys($binary)[0] }}",
+              "rightValue": "File",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -720,
+        -120
+      ],
+      "id": "2c988a79-6a45-423c-acf1-cb79d7dbe1b6",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Object.keys($binary)[0] }}",
+                    "rightValue": "XML",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7f43633e-584d-427d-8b45-3a82145aa5b5"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -460,
+        -120
+      ],
+      "id": "dd434a6b-aa45-4ffc-b47c-6932ce50c883",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "www.example.com",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1120,
+        -120
+      ],
+      "id": "665586aa-1579-43a1-b7c8-cf2e99ea3e90",
+      "name": "HTTP Request"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "9c239f20-23f6-40cf-a5dd-d769017ea853",
+  "triggerCount": 0,
+  "tags": []
+}

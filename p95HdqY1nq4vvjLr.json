@@ -1,0 +1,232 @@
+{
+  "createdAt": "2025-12-04T21:50:28.921Z",
+  "updatedAt": "2025-12-05T11:08:50.698Z",
+  "id": "p95HdqY1nq4vvjLr",
+  "name": "combine records",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Parse EQB Inforce file: Split into lines and parse tilde-delimited fields\nconst fileContent = Buffer.from($input.first().binary.File.data, 'base64').toString('utf-8');\nconst lines = fileContent.split(/\\r?\\n/).filter(line => line.trim() !== '');\n\n// Field definitions from PDF specs\nconst POLICY_FIELDS = [\n  ['P1', 'Transaction Number', 5],\n  ['P2', 'Record Type', 1],\n  ['P3', 'Policy Number', 20],\n  ['P4', 'Company/Product Code', 4],\n  ['P5', 'Transaction Code', 2],\n  ['P6', 'Name of Insured', 55],\n  ['P7', 'Mailing Address', 55],\n  ['P8', 'Mailing City', 20],\n  ['P9', 'Mailing State', 2],\n  ['P10', 'Mailing Zip Code', 5],\n  ['P11', 'Mailing Zip Ext', 4],\n  ['P12', 'Mailing Zip Intl', 4],\n  ['P13', 'Transaction Entry Date', 8],\n  ['P14', 'Transaction Effective Date', 8],\n  ['P15', 'Coverage Effective Date', 8],\n  ['P16', 'Coverage Expiration Date', 8],\n  ['P17', 'Coverage', 3],\n  ['P18', 'EB Gross Premium', 11],\n  ['P19', 'EB Net Premium', 11],\n  ['P20', 'Deductible', 9],\n  ['P21', 'Occupancy/Class Code', 6],\n  ['P22', 'Value Amount', 9],\n  ['P23', 'Value Type', 1],\n  ['P24', 'HSB Branch Code', 3],\n  ['P25', 'Agency Code', 15],\n  ['P26', 'Previous Policy Number', 20],\n  ['P27', 'Program Name', 20],\n  ['P28', 'Contract Number', 7],\n  ['P29', 'ISO Policy Type', 2],\n  ['P30', 'Payment Mode', 1],\n  ['P31', 'Package/Property Premium', 11],\n  ['P32', 'Premium Type', 1],\n  ['P33', 'Filler', 128]\n];\n\nconst LOCATION_FIELDS = [\n  ['L1', 'Transaction Number', 5],\n  ['L2', 'Record Type', 1],\n  ['L3', 'Policy Number', 20],\n  ['L4', 'Company/Product Code', 4],\n  ['L5', 'Transaction Code', 2],\n  ['L6', 'Location Name', 55],\n  ['L7', 'Street Name', 55],\n  ['L8', 'City', 20],\n  ['L9', 'State', 2],\n  ['L10', 'Zip Code - 5', 5],\n  ['L11', 'Zip Code - 4', 4],\n  ['L12', 'Zip Intl', 4],\n  ['L13', 'Owner/Tenant Indicator', 1],\n  ['L14', 'Inspection Contact Name', 55],\n  ['L15', 'Contact Area Code', 3],\n  ['L16', 'Contact Phone Number', 7],\n  ['L17', 'Contact Phone Extension', 3],\n  ['L18', 'Occupancy/Class Code', 6],\n  ['L19', 'Value Amount', 9],\n  ['L20', 'Value Type', 1],\n  ['L21', 'Location ID', 6],\n  ['L22', 'Contact Email Address', 202]\n];\n\nfunction parseTildeDelimited(line) {\n  let fields = line.split('~');\n  if (fields.length > 0 && fields[fields.length - 1] === '') {\n    fields = fields.slice(0, -1);\n  }\n  return fields.map(f => f.trim());\n}\n\nfunction parsePolicyRecord(fields) {\n  const record = {};\n  POLICY_FIELDS.forEach(([id, name, maxLen], idx) => {\n    record[name] = idx < fields.length ? fields[idx] : '';\n  });\n  return record;\n}\n\nfunction parseLocationRecord(fields) {\n  const record = {};\n  LOCATION_FIELDS.forEach(([id, name, maxLen], idx) => {\n    record[name] = idx < fields.length ? fields[idx] : '';\n  });\n  return record;\n}\n\nconst items = [];\n\nlines.forEach((line, lineNum) => {\n  const fields = parseTildeDelimited(line);\n  if (fields.length < 2) return;\n  \n  const recordType = fields[1] ? fields[1].trim() : '';\n  \n  if (recordType === '2') {\n    // Policy Record\n    const record = parsePolicyRecord(fields);\n    const policyNumber = record['Policy Number'] ? record['Policy Number'].trim() : '';\n    if (policyNumber) {\n      items.push({\n        json: {\n          ...record,\n          _recordType: 'Policy',\n          _lineNumber: lineNum + 1\n        }\n      });\n    }\n  } else if (recordType === '3') {\n    // Location Record\n    const record = parseLocationRecord(fields);\n    items.push({\n      json: {\n        ...record,\n        _recordType: 'Location',\n        _lineNumber: lineNum + 1\n      }\n    });\n  }\n  // Skip Type 1 (Control) records\n});\n\nreturn items;"
+      },
+      "id": "6004acc0-66ab-4b40-a504-178a89cc95f4",
+      "name": "Parse File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "filter-policies",
+              "leftValue": "={{ $json._recordType }}",
+              "rightValue": "Policy",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2f3a60e3-027e-4805-a8fe-faff495c505e",
+      "name": "Filter Policies",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "filter-locations",
+              "leftValue": "={{ $json._recordType }}",
+              "rightValue": "Location",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8d1da0d1-170d-4af1-bd7e-a57d26d49526",
+      "name": "Filter Locations",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all Policy records into a lookup object\nconst policies = {};\n\nfor (const item of $input.all()) {\n  const policyNumber = item.json['Policy Number'] ? item.json['Policy Number'].trim() : '';\n  if (policyNumber) {\n    policies[policyNumber] = item.json;\n  }\n}\n\n// Store in workflow static data or return as single item\nreturn [{\n  json: {\n    _policies: policies,\n    _policyCount: Object.keys(policies).length\n  }\n}];"
+      },
+      "id": "56ee3d99-4c55-4929-81b9-eff10b490329",
+      "name": "Aggregate Policies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Join Location records with Policy records\n// Get policies from previous node\nconst policyData = $('Aggregate Policies').first().json._policies;\nconst joinedRows = [];\n\n// Get all location items\nconst locationItems = $input.all();\n\nfor (const item of locationItems) {\n  const location = item.json;\n  const policyNumber = location['Policy Number'] ? location['Policy Number'].trim() : '';\n  \n  if (!policyNumber) continue;\n  \n  const policy = policyData[policyNumber];\n  if (!policy) continue;\n  \n  // Create joined record with Policy_ and Location_ prefixes\n  const joinedRecord = {};\n  \n  // Add Policy fields with prefix (skip Record Type and internal fields)\n  const policyFields = [\n    'Transaction Number', 'Policy Number', 'Company/Product Code', 'Transaction Code',\n    'Name of Insured', 'Mailing Address', 'Mailing City', 'Mailing State',\n    'Mailing Zip Code', 'Mailing Zip Ext', 'Mailing Zip Intl',\n    'Transaction Entry Date', 'Transaction Effective Date',\n    'Coverage Effective Date', 'Coverage Expiration Date', 'Coverage',\n    'EB Gross Premium', 'EB Net Premium', 'Deductible',\n    'Occupancy/Class Code', 'Value Amount', 'Value Type',\n    'HSB Branch Code', 'Agency Code', 'Previous Policy Number',\n    'Program Name', 'Contract Number', 'ISO Policy Type',\n    'Payment Mode', 'Package/Property Premium', 'Premium Type', 'Filler'\n  ];\n  \n  policyFields.forEach(fieldName => {\n    if (fieldName !== 'Record Type' && !fieldName.startsWith('_')) {\n      joinedRecord[`Policy_${fieldName}`] = policy[fieldName] || '';\n    }\n  });\n  \n  // Add Location fields with prefix\n  const locationFields = [\n    'Transaction Number', 'Record Type', 'Policy Number', 'Company/Product Code',\n    'Transaction Code', 'Location Name', 'Street Name', 'City', 'State',\n    'Zip Code - 5', 'Zip Code - 4', 'Zip Intl',\n    'Owner/Tenant Indicator', 'Inspection Contact Name',\n    'Contact Area Code', 'Contact Phone Number', 'Contact Phone Extension',\n    'Occupancy/Class Code', 'Value Amount', 'Value Type',\n    'Location ID', 'Contact Email Address'\n  ];\n  \n  locationFields.forEach(fieldName => {\n    if (!fieldName.startsWith('_')) {\n      joinedRecord[`Location_${fieldName}`] = location[fieldName] || '';\n    }\n  });\n  \n  joinedRows.push({ json: joinedRecord });\n}\n\nreturn joinedRows;"
+      },
+      "id": "669a9756-3b3b-4c2f-acaa-66c32fc9a54a",
+      "name": "Join Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Upload",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "acceptFileTypes": ".txt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -500,
+        100
+      ],
+      "id": "76d064c9-9bdc-4533-bf39-d5a7027e58b6",
+      "name": "On form submission",
+      "webhookId": "3803e132-a914-4672-9f69-17d96811b55a"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        100
+      ],
+      "id": "1e5658ba-5ab2-491b-aa3a-05415029c8b8",
+      "name": "Convert to File"
+    }
+  ],
+  "connections": {
+    "Parse File": {
+      "main": [
+        [
+          {
+            "node": "Filter Policies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Locations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Policies": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Policies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Locations": {
+      "main": [
+        [
+          {
+            "node": "Join Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Policies": {
+      "main": [
+        [
+          {
+            "node": "Join Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Join Records": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Parse File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "7f93e43d-e460-4cf4-95dd-b5cedb8e7478",
+  "triggerCount": 0,
+  "tags": []
+}

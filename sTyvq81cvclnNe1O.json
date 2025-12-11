@@ -1,0 +1,80 @@
+{
+  "createdAt": "2025-11-28T18:06:45.841Z",
+  "updatedAt": "2025-11-28T18:06:45.841Z",
+  "id": "sTyvq81cvclnNe1O",
+  "name": "My workflow 11",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "895e0ab5-9fa8-4d32-80f7-6eafae55b2f1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read"
+      },
+      "id": "9614b666-68e6-4cfc-82de-e480ccc8d05e",
+      "name": "Read Template",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javascript"
+      },
+      "id": "77e7eabb-f9bd-4928-9940-4afc68839b56",
+      "name": "Build Binder Instructions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        580,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Template": {
+      "main": [
+        [
+          {
+            "node": "Build Binder Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "4cece58c-7443-47c3-9a80-a0143ac6249a",
+  "triggerCount": 0,
+  "tags": []
+}

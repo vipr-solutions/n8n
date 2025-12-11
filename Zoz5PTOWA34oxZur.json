@@ -1,0 +1,130 @@
+{
+  "createdAt": "2025-04-03T12:11:03.646Z",
+  "updatedAt": "2025-04-04T09:15:43.965Z",
+  "id": "Zoz5PTOWA34oxZur",
+  "name": "My PDF workflow",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "PDF",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "PDF",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "32ca06ca-3c34-4dd6-a810-289dff756f85",
+      "name": "On form submission",
+      "webhookId": "33ec467c-15fb-4852-924a-a2271ca6f416"
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "PDF"
+      },
+      "type": "n8n-nodes-pdf-excel.pdfExcelProcessor",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "66be8f49-beaf-4c7f-a85e-f80f40a59766",
+      "name": "PDF & Excel Processor"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Find the gross premium in this text:\n\n\n {{ $json.pdfResults.extractedText }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        440,
+        0
+      ],
+      "id": "05ff2fc4-8db8-4f8f-a348-b88f3e8043cf",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        540,
+        220
+      ],
+      "id": "f9f92757-0df2-46d0-89c6-37806ad3c342",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Isbc3x6OSisy0Igf",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "PDF & Excel Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF & Excel Processor": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "0fcbb930-704e-4c1c-9183-bb0cda09c7ee",
+  "triggerCount": 0,
+  "tags": []
+}

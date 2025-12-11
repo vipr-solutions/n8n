@@ -1,0 +1,1283 @@
+{
+  "createdAt": "2025-10-27T10:27:59.094Z",
+  "updatedAt": "2025-10-27T10:27:59.094Z",
+  "id": "hPv8whi1Wj3CpWBJ",
+  "name": "External - Portal - Intrali",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {
+          "fileName": "={{ $('Merge').item.json.fileName }}",
+          "headerRow": true,
+          "sheetName": "=Sheet1"
+        }
+      },
+      "id": "e947067d-0579-45b0-bd76-01945f888184",
+      "name": "Convert to File",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1140,
+        2400
+      ],
+      "retryOnFail": false,
+      "notesInFlow": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data0"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('Webhook - Circles').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('Webhook - Circles').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b27d082c-977a-4f04-938d-f2a11d1b6631",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        1340
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{        \n    \"name\": \"Sheet1\",        \n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "ac4e2eb8-becd-42a6-a15e-5c669d0c2d2d",
+      "name": "POST metedata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        1320
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "76e88fd5-f9b5-477d-8b59-09f414308eb2",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "328f1996-88ab-4b4e-a471-24cc36c0c957",
+      "name": "Respond to Webhook5",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1300,
+        1780
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "7990040f-f18c-404e-83b9-af1648c4c815",
+      "name": "Respond to Webhook4",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to convert file to VIPR format.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "e77bd64a-935b-4dd4-b060-f7d3cee0256f",
+      "name": "Respond to Webhook2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        2660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to split JSON",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "6ba23510-d50c-4692-81c4-76038d5fc973",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        2660
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "binaryPropertyName": "data0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        400,
+        2440
+      ],
+      "id": "59350128-5228-4b68-86b3-657694f84a41",
+      "name": "Extract from File",
+      "retryOnFail": false,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        780,
+        2420
+      ],
+      "id": "a3547577-d785-4e92-80fc-7fc13eb64eab",
+      "name": "Split Out",
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Failed to extract JSON from attachement",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "0c51e570-00e8-4f7e-9c6e-32a8044cd0f6",
+      "name": "File attachement failure",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        2660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "No file attached or URI provided",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2780,
+        1540
+      ],
+      "id": "145823f6-1e5c-4785-958f-1252d3763419",
+      "name": "Respond to Webhook6"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "circles-json",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data",
+          "rawBody": false
+        }
+      },
+      "id": "b08dd359-94c1-46b6-b773-b0c807f834ec",
+      "name": "Webhook - Circles",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3420,
+        1340
+      ],
+      "webhookId": "2807314d-7a6d-4314-b298-f05cffe32fa6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        1540
+      ],
+      "id": "34b7224a-6b14-4309-b0e0-fe4394dac786",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7a0a07b6-9d2f-4753-866a-6a3e7425e86d",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "csv"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "13db1835-8f5a-4d77-8fe7-04835100e103"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "xlsx"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7a5074e-e0ef-4f74-aa3c-daa4a731cc75",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "xls",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "xls"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cd5bf38d-00fc-40aa-9344-2bc1538a1632",
+                    "leftValue": "={{ $binary.data0.fileExtension }}",
+                    "rightValue": "json",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1080,
+        1320
+      ],
+      "id": "704e116c-9be8-43f5-ac81-1a5a4520c131",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data0"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('Webhook - Circles').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('Webhook - Circles').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a20569b8-9ccd-4004-afa7-956619d64683",
+      "name": "POST File1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        480
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "31363488-e911-4992-ad05-2cc62c0125b4",
+      "name": "Respond to Webhook7",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{ \n    \"name\": \"csv\",\n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "1253a5cf-1296-492b-a3c7-0f065e28e848",
+      "name": "POST metedata1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        140
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "dee00973-aeb2-42b7-83a7-025b0f7adc6b",
+      "name": "Respond to Webhook3",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "b50d66a9-4f2e-49cc-94c5-7101794baf0a",
+      "name": "Respond to Webhook8",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1620,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        360
+      ],
+      "id": "6fd42677-fab8-4043-a717-48192664c16e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "=data"
+            },
+            {
+              "name": "submittedBy",
+              "value": "={{ $('Webhook - Circles').item.json.body.submittedBy }}"
+            },
+            {
+              "name": "tenantCode",
+              "value": "={{ $('Webhook - Circles').item.json.body.tenantCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bb0ca8ab-00e6-46d9-8a6c-2aa66d0b1389",
+      "name": "POST File2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        2400
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-uat.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Webhook - Circles').item.json.headers.authorization }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": {{ $('Webhook - Circles').item.json.body.isBulkUpload }}, \n\"umr\": \"{{ $('Webhook - Circles').item.json.body.umr }}\", \n\"worksheets\": [{        \n    \"name\": \"Sheet1\",        \n    \"riskCode\": null,        \n    \"isAuto\": {{ $('Webhook - Circles').item.json.body.isAuto }},        \n    \"bordereauxTypeId\": {{ $('Webhook - Circles').item.json.body.bordereauxTypeId }},\n    \"isReportingPeriodTakenFromBordereaux\": {{ $('Webhook - Circles').item.json.body.isReportingPeriodTakenFromBordereaux }},        \n    \"reportingPeriodStart\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodStart }}\",\n    \"reportingPeriodEnd\": \"{{ $('Webhook - Circles').item.json.body.reportingPeriodEnd }}\"    \n}]\n} ",
+        "options": {}
+      },
+      "id": "7a8e17d7-6d3d-431a-8828-efaa0c60dc50",
+      "name": "POST metedata2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2580,
+        2400
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=There was a problem with an API submission:\n\nFailed to post metadata.\n\nSee email report for full details.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c847df9a-64e1-49f8-88de-2094ea28a824",
+      "name": "Respond to Webhook9",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3040,
+        2860
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Failed to post file to Intrali.",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "8470db94-c9bf-4d0a-8239-f3fbe420916d",
+      "name": "Respond to Webhook10",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2340,
+        2640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the first item's input JSON error message\nconst input = items[0].json.error.message;\n\n// Remove the status code prefix and trim the result\nconst jsonString = input.substring(input.indexOf('-') + 1).trim();\n\n// Parse the JSON string\nconst parsed = JSON.parse(jsonString);\n\n// Return the extracted message from the parsed JSON\nreturn [\n  {\n    json: {\n      serverResponse: JSON.parse(parsed)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        2620
+      ],
+      "id": "fb844ff2-92f7-46d6-80b8-87e8ebf41e64",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Data submitted sucessfully",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "c117bbac-2901-4417-b008-3c688c23d5ea",
+      "name": "Respond to Webhook11",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3100,
+        2400
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## CSV\n",
+        "height": 1120,
+        "width": 2400
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "20effb36-121b-49c5-aaee-ecb02ed20440",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## JSON\n",
+        "height": 1100,
+        "width": 3440
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2240
+      ],
+      "id": "477a1739-bcfc-49a1-b593-162ed973eaf3",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { read: xlsxRead } = require('xlsx');\n\nconst data = items[0].binary.data;\n\nworkbook = xlsxRead(data.data);\n\nreturn workbook.SheetNames.map((s) => {\n  return {\n    json: {\n      name: s,\n    }\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2380,
+        360
+      ],
+      "id": "df4374d8-6420-4d7b-8ac2-7713e12e9f65",
+      "name": "XLSX Code Node"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f0c60f5d-d919-4d8f-913d-55943e661bcc",
+              "name": "fileName",
+              "value": "={{ $binary.data0.fileName }}.xlsx",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -520,
+        2380
+      ],
+      "id": "b7feb98f-4845-43ab-b0d0-72cc2611487b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        120,
+        2440
+      ],
+      "id": "184e2792-ceef-47a1-97d5-0b5a90716d1a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d7a5074e-e0ef-4f74-aa3c-daa4a731cc75",
+                    "leftValue": "={{ $json.body.uri }}",
+                    "rightValue": "xls",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "uri"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7a0a07b6-9d2f-4753-866a-6a3e7425e86d",
+                    "leftValue": "={{ Object.keys($binary)[0] }}",
+                    "rightValue": "csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "File"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -3000,
+        1340
+      ],
+      "id": "96e0ff03-3a47-48a1-a2cb-cf592210fd48",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.uri }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2440,
+        860
+      ],
+      "id": "ecbfb939-cafb-4029-931a-22bb44070fc6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1cbcb582-6554-4779-aa8a-cfdffb5a58ca",
+              "leftValue": "=",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1540,
+        920
+      ],
+      "id": "a1b0dd54-22e0-4284-bbe9-783a19dd914f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Could not get file from URI",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -2140,
+        1140
+      ],
+      "id": "ae8b40f9-abff-4faf-8e70-fe200d3e0673",
+      "name": "Respond to Webhook12"
+    },
+    {
+      "parameters": {
+        "operation": "toJson",
+        "binaryPropertyName": "data0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -2100,
+        840
+      ],
+      "id": "1d914287-2943-4757-a8d6-0610a3e23723",
+      "name": "Convert to File1"
+    }
+  ],
+  "connections": {
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "POST File2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "File attachement failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Circles": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "POST File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File1": {
+      "main": [
+        [
+          {
+            "node": "POST metedata1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File2": {
+      "main": [
+        [
+          {
+            "node": "POST metedata2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook11",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "13aeb998-61b5-4908-8c2b-8fa74f906954",
+  "triggerCount": 0,
+  "tags": []
+}

@@ -1,0 +1,300 @@
+{
+  "createdAt": "2025-06-04T17:14:31.256Z",
+  "updatedAt": "2025-06-05T09:23:54.121Z",
+  "id": "cUCJk9q60E1J9sS6",
+  "name": "SFTP - Nationwide copy OLD",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8b44fd93-d048-4286-8b61-3e039811d3a8",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "=xlsx",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        560
+      ],
+      "id": "b358acf1-ae29-4d2b-a721-ee2b59767af0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "File",
+              "inputDataFieldName": "={{ Object.keys($binary)[0] }}"
+            },
+            {
+              "name": "submittedBy",
+              "value": "paul@viprsolutions.com"
+            },
+            {
+              "name": "tenantCode",
+              "value": "viprsolutions"
+            },
+            {
+              "name": "Password"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1bd60b8-f568-414d-ac3b-f6dcf27f10eb",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        540
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "list",
+        "path": "/data/"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        560
+      ],
+      "id": "40bcffb4-e389-4b07-b9bd-5bf87f000256",
+      "name": "FTP",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "path": "={{ $json.path }}"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        600,
+        540
+      ],
+      "id": "e42abcf5-027e-425c-b6dd-38f43b88f645",
+      "name": "FTP1",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        560
+      ],
+      "id": "23f06095-b258-4824-ae28-65e7c87828f4",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "rename",
+        "oldPath": "={{ $('Merge').item.json.path }}",
+        "newPath": "=/data/archive/{{ $now }}-{{ $('Merge').item.json.name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        500
+      ],
+      "id": "4aab9099-5acb-4c63-8bde-0769b7a5d7bc",
+      "name": "FTP2",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": false, \n\"umr\": \"28A6D93C2D1C3\", \n\"tenantCode\": \"viprsolutions\", \n\"submittedBy\": \"paul@viprsolutions.com\", \n\"worksheets\": [{        \n    \"name\": \"February 2023 Property\",      \n    \"riskCode\": null,        \n    \"isAuto\": true,        \n    \"bordereauxTypeId\": 2,\n    \"isReportingPeriodTakenFromBordereaux\": false,        \n    \"reportingPeriodStart\": \"2023-03-01 00:00:00\",\n    \"reportingPeriodEnd\": \"2023-03-31 00:00:00\" \n}] \n} ",
+        "options": {}
+      },
+      "id": "bb8f1082-8a67-4cad-ab8c-e942b046667b",
+      "name": "POST metedata1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        520
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "FTP1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FTP": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FTP1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "FTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata1": {
+      "main": [
+        [
+          {
+            "node": "FTP2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "3c16d1e3-d7c2-4a7f-9cb0-4643b160c8ed",
+  "triggerCount": 1,
+  "tags": []
+}

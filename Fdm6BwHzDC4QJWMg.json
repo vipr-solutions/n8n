@@ -1,0 +1,173 @@
+{
+  "createdAt": "2025-07-16T09:04:53.388Z",
+  "updatedAt": "2025-07-18T09:30:08.680Z",
+  "id": "Fdm6BwHzDC4QJWMg",
+  "name": "Load from Excel",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "excel-plugin",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -440,
+        -60
+      ],
+      "id": "002dac68-213b-4f60-a334-5bde158b70b7",
+      "name": "Webhook",
+      "webhookId": "c1df3da0-1fa8-4864-9d9c-801a18e1ad1e"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        580,
+        -100
+      ],
+      "id": "8add9357-2dc5-42c5-a109-4384f1e3db38",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "File",
+              "inputDataFieldName": "={{ Object.keys($binary)[0] }}"
+            },
+            {
+              "name": "submittedBy",
+              "value": "paul@viprsolutions.com"
+            },
+            {
+              "name": "tenantCode",
+              "value": "viprsolutions"
+            },
+            {
+              "name": "Password"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a763e2b1-328f-46d1-91e9-bade6ff0de66",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        -60
+      ],
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "onError": "continueErrorOutput",
+      "notes": "Post file to the Portal API"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjciLCJuYW1lIjoiRGVtbyBTRlRQIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZW1haWxhZGRyZXNzIjoiYXBpX2FmMzdiNTdmLTNjOTEtNDVlMC05MTFiLTg2ZTk0ZDJkMzdiOUBkby1ub3QtdXNlLmNvbSIsIkFzcE5ldC5JZGVudGl0eS5TZWN1cml0eVN0YW1wIjoiUzZJUFVHSkhWUUo2TzNVM1JOU0dXUllZSUlZVUJPUFAiLCJVc2VyVHlwZSI6ImFwaSIsImh0dHA6Ly93d3cuYXNwbmV0Ym9pbGVycGxhdGUuY29tL2lkZW50aXR5L2NsYWltcy90ZW5hbnRJZCI6IjIzIiwiQXBwbGljYXRpb25fT3JnYW5pemF0aW9uVW5pdENvZGVzIjoiW3tcIkNvZGVcIjpcIjAwMDAxLjAwMDE5XCIsXCJFeHRlcm5hbElkXCI6XCJcIn0se1wiQ29kZVwiOlwiMDAwMDEuMDAwMTlcIixcIkV4dGVybmFsSWRcIjpcIjFlMzJiODUzLTIzZjctNDBlMy04OTU5LWY3ZTYyZjQ0MmNjNVwifV0iLCJqdGkiOiI0NDYzNjhmYy03ZmI0LTQzM2MtYjAwMS1hM2I4Y2IxMDc3OGYiLCJpYXQiOjE3NDkwMzA4NDEsInRva2VuX3ZhbGlkaXR5X2tleSI6IjNiZGRiZmFiLTc5MGUtNDNhMC05MjNhLTE4ZjI1NThjZWM1MiIsInVzZXJfaWRlbnRpZmllciI6IjEyN0AyMyIsInRva2VuX3R5cGUiOiIwIiwiaXNzIjoiWmVybyIsImF1ZCI6Ilplcm8ifQ.UGsfrS3AlSbiUNkhPIX-i1d4O0ytJWcBbYOaf1xOD5o"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": false, \n\"umr\": \"28A6D93C2D1C3\", \n\"tenantCode\": \"viprsolutions\", \n\"submittedBy\": \"paul@viprsolutions.com\", \n\"worksheets\": [{        \n    \"name\": \"February 2023 Property\",      \n    \"riskCode\": null,        \n    \"isAuto\": true,        \n    \"bordereauxTypeId\": 2,\n    \"isReportingPeriodTakenFromBordereaux\": false,        \n    \"reportingPeriodStart\": \"2023-03-01 00:00:00\",\n    \"reportingPeriodEnd\": \"2023-03-31 00:00:00\" \n}] \n} ",
+        "options": {}
+      },
+      "id": "cb611d42-df66-44d8-b887-99a975e8d39c",
+      "name": "POST metedata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        180,
+        -80
+      ],
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "onError": "continueErrorOutput",
+      "notes": "Post metadata to the Portal API"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "eb244846-d8f7-4627-9d0e-07bead5efac4",
+  "triggerCount": 1,
+  "tags": []
+}

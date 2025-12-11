@@ -1,0 +1,367 @@
+{
+  "createdAt": "2025-05-23T08:20:40.159Z",
+  "updatedAt": "2025-07-02T04:41:25.195Z",
+  "id": "WAlso1b6vPeZ7BrW",
+  "name": "WE - SFTP -  copy",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8b44fd93-d048-4286-8b61-3e039811d3a8",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "=xlsx",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        560
+      ],
+      "id": "480820a9-ae43-4769-a5e7-219d3903cc18",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "b1c497b6-fcd4-4660-a3da-39fbeb532926",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1420,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/tokenauth/authenticate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "{    \"UserNameOrEmailAddress\": \"viprapiaccount\",    \"Password\": \"@kS3xx&d4w4w&Nx5\",    \"Tenant\": \"\"}",
+        "options": {}
+      },
+      "id": "d0237e2e-e8c6-4b3f-9a02-031fa000e44e",
+      "name": "Get Auth Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        760
+      ],
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/file",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "multipart/form-data"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.result.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "File",
+              "inputDataFieldName": "={{ Object.keys($binary)[0] }}"
+            },
+            {
+              "name": "submittedBy",
+              "value": "paul@viprsolutions.com"
+            },
+            {
+              "name": "tenantCode",
+              "value": "viprsolutions"
+            },
+            {
+              "name": "Password"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "74c0283e-f271-467d-9068-00b2b52b08e2",
+      "name": "POST File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        540
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "list",
+        "path": "/data/"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        560
+      ],
+      "id": "a85fe0a3-b554-4acf-b2e4-8f4f6de8f90e",
+      "name": "FTP",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "path": "={{ $json.path }}"
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        600,
+        540
+      ],
+      "id": "08941209-910e-4d3a-806f-3fcb7f350bee",
+      "name": "FTP1",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        560
+      ],
+      "id": "c6df1391-9106-453f-9717-253478473c96",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "protocol": "sftp",
+        "operation": "rename",
+        "oldPath": "={{ $('Merge').item.json.path }}",
+        "newPath": "=/data/archive/{{ $now }}-{{ $('Merge').item.json.name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ftp",
+      "typeVersion": 1,
+      "position": [
+        2540,
+        500
+      ],
+      "id": "268781a2-75a1-425e-8bc5-f40a30535155",
+      "name": "FTP2",
+      "credentials": {
+        "sftp": {
+          "id": "VZ83bTe4qY9pZhal",
+          "name": "FTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portal-api-vipr-demo.viprsolutions.com/api/hub/metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer  {{ $('Merge').item.json.result.accessToken }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={ \"uploadedFileGlobalId\": \"{{ $json.result.uploadedFileGlobalId }}\", \n\"isBulkUpload\": false, \n\"umr\": \"28A6D93C2D1C3\", \n\"tenantCode\": \"viprsolutions\", \n\"submittedBy\": \"paul@viprsolutions.com\", \n\"worksheets\": [{        \n    \"name\": \"February 2023 Property\",      \n    \"riskCode\": null,        \n    \"isAuto\": true,        \n    \"bordereauxTypeId\": 2,\n    \"isReportingPeriodTakenFromBordereaux\": false,        \n    \"reportingPeriodStart\": \"2023-03-01 00:00:00\",\n    \"reportingPeriodEnd\": \"2023-03-31 00:00:00\" \n}] \n} ",
+        "options": {}
+      },
+      "id": "427ca64e-e367-4220-9665-6fe115a75aa5",
+      "name": "POST metedata1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        520
+      ],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "FTP1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "POST File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Auth Token": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "POST File": {
+      "main": [
+        [
+          {
+            "node": "POST metedata1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FTP": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FTP1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Auth Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "FTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST metedata1": {
+      "main": [
+        [
+          {
+            "node": "FTP2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "99d4892d-b171-4d0c-89e3-d95eeea478e2",
+  "triggerCount": 1,
+  "tags": []
+}

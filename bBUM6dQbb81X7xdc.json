@@ -1,0 +1,263 @@
+{
+  "createdAt": "2025-11-28T14:04:35.823Z",
+  "updatedAt": "2025-11-28T17:55:37.135Z",
+  "id": "bBUM6dQbb81X7xdc",
+  "name": "JIRA Reporting",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3896f546-4401-423e-8186-c821e6ab34e8",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://viprsolutions.atlassian.net/rest/api/3/search/jql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{\n  JSON.stringify({\n    jql: $json.jql,\n    fields: $json.fields,\n    maxResults: $json.maxResults,\n    ...( $json.nextPageToken ? { nextPageToken: $json.nextPageToken } : {} )\n  })\n}}",
+        "options": {
+          "pagination": {}
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "7b69e6ce-9527-4a27-96c9-74be00aebe32",
+      "name": "HTTP Request",
+      "alwaysOutputData": true,
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "nrTuWRRbWncSFaHU",
+          "name": "Jira SW Cloud account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const maxResults = 100;\n\nconst config = {\n  jql: 'created >= \"2025-11-01\"',\n  fields: [\n    \"key\",\"summary\",\"assignee\",\"status\",\"updated\",\"project\",\"issuetype\",\n    \"priority\",\"reporter\",\"labels\",\"created\",\"duedate\",\"resolution\",\"components\"\n  ],\n  maxResults,\n};\n\n// reset accumulator in static data\nconst data = $getWorkflowStaticData('global');\ndata.allIssues = [];\n\nreturn [{ json: { ...config, nextPageToken: null } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "2204734d-f7e1-439c-b168-45cb9e049d1d",
+      "name": "Code: Init"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\n\nconst pageIssues = $json.issues || [];\nif (!data.allIssues) data.allIssues = [];\n\n// push is O(k), concat is O(n+k)\ndata.allIssues.push(...pageIssues);\n\nconst nextToken = $json.nextPageToken || null;\nconst init = $items(\"Code: Init\")[0].json;\n\nreturn [{\n  json: {\n    jql: init.jql,\n    fields: init.fields,\n    maxResults: init.maxResults,\n    nextPageToken: nextToken\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "fbd05211-2d0c-4f66-9547-d3836bc2d3f6",
+      "name": "Code: Extract and Accumulate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "46c6fada-8f11-4915-b8c3-627e639a00a4",
+              "leftValue": "={{ $json.nextPageToken }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "70291581-c52f-4268-a447-7094a15200f1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $getWorkflowStaticData('global');\nconst allIssues = data.allIssues || [];\n\nreturn [{\n  json: {\n    issues: allIssues,\n    totalFetched: allIssues.length\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        20
+      ],
+      "id": "5437c997-02e7-4955-a8d7-e05f846b71cc",
+      "name": "Code: Final Output"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "JiraTestData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        20
+      ],
+      "id": "9ed92d36-7bc7-441d-9cb9-8d784f70fa30",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "issues",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        20
+      ],
+      "id": "2d556272-99d2-458d-a89f-3409efe1fc84",
+      "name": "Split Out"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Code: Init",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code: Extract and Accumulate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Init": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Extract and Accumulate": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Final Output": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "3332ef77-be22-4126-9f14-e54c0ca9b3d7",
+  "triggerCount": 0,
+  "tags": []
+}

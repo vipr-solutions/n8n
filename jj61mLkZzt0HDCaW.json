@@ -1,0 +1,160 @@
+{
+  "createdAt": "2025-11-26T12:14:43.053Z",
+  "updatedAt": "2025-12-01T11:08:22.997Z",
+  "id": "jj61mLkZzt0HDCaW",
+  "name": "Copy of Duplicate column headers",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Data Load",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File",
+              "fieldType": "file",
+              "multipleFiles": false
+            },
+            {
+              "fieldLabel": "Header Row Start",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Header Row Ends",
+              "fieldType": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -380,
+        0
+      ],
+      "id": "eaa459c2-4636-42ae-95fc-cfd81ab85d59",
+      "name": "On form submission",
+      "webhookId": "64b09bde-50bd-4c09-a30f-a57e374d01ec"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "File",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -180,
+        0
+      ],
+      "id": "2ee0ea30-37e8-421e-8e8e-cc65a085344c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Multi-row header handling for \"Extract From XLSX\"\n *\n * - Supports header spanning multiple Excel rows\n * - Skips empty header cells and any \"__EMPTY...\" / \"empty\" values\n * - Never outputs \"empty\" or \"__EMPTY...\" as header names\n * - Keeps column order the same\n * - Marks duplicates with _dup, _dup2, ...\n *\n * CONFIG: set these to the Excel row numbers (1-based) that contain your header:\n *   HEADER_START_EXCEL_ROW  → first header row\n *   HEADER_END_EXCEL_ROW    → last  header row\n *\n * Examples:\n *   If header is on rows 1 and 2     → 1, 2\n *   If header is on rows 2 to 4     → 2, 4\n */\n\nconst HEADER_START_EXCEL_ROW = 1;  // <-- change if needed\nconst HEADER_END_EXCEL_ROW   = 2;  // <-- change if needed\n\n// ---------------------------------------------------------------------\n// Get all rows coming from \"Extract From XLSX\"\n// Each item is one row from Excel *starting from row 2*.\n// Excel row 1 has already been used as column keys.\n// ---------------------------------------------------------------------\nconst allRows = $input.all().map(i => i.json);\n\nif (allRows.length === 0) {\n  return [{\n    json: {\n      message: 'No data rows found after Extract From XLSX.',\n    },\n  }];\n}\n\n// Column keys are derived from Excel row 1\nconst colKeys = Object.keys(allRows[0]);\n\n// Recreate a synthetic \"Excel row 1\" using these keys\n// BUT: treat any \"__EMPTY...\" key as truly empty (no text)\nconst excelRow1 = {};\nfor (const key of colKeys) {\n  const upperKey = key.trim().toUpperCase();\n  if (upperKey.startsWith('__EMPTY')) {\n    // No header text in row 1 for this column\n    excelRow1[key] = '';\n  } else {\n    // Use the key itself as header text for row 1\n    excelRow1[key] = key;\n  }\n}\n\n// Build an array that represents true Excel rows:\n// index 0 -> Excel row 1  (synthetic from colKeys)\n// index 1 -> Excel row 2  (allRows[0])\n// index 2 -> Excel row 3  (allRows[1])\n// etc.\nconst excelRows = [excelRow1, ...allRows];\n\n// ---------------------------------------------------------------------\n// Validate header row configuration\n// ---------------------------------------------------------------------\nif (HEADER_START_EXCEL_ROW < 1) {\n  throw new Error(`HEADER_START_EXCEL_ROW must be >= 1 (got ${HEADER_START_EXCEL_ROW})`);\n}\nif (HEADER_END_EXCEL_ROW < HEADER_START_EXCEL_ROW) {\n  throw new Error(\n    `HEADER_END_EXCEL_ROW (${HEADER_END_EXCEL_ROW}) must be >= HEADER_START_EXCEL_ROW (${HEADER_START_EXCEL_ROW})`\n  );\n}\n\nconst startIdx = HEADER_START_EXCEL_ROW - 1;\nconst endIdx   = HEADER_END_EXCEL_ROW   - 1;\n\nif (endIdx >= excelRows.length) {\n  throw new Error(\n    `Sheet only has ${excelRows.length} rows (including synthetic row 1), `\n    + `but header end is set to Excel row ${HEADER_END_EXCEL_ROW}.`\n  );\n}\n\n// ---------------------------------------------------------------------\n// 1) Collect header rows and data rows\n// ---------------------------------------------------------------------\nconst headerRows = excelRows.slice(startIdx, endIdx + 1);\n\n// Data rows come from *after* HEADER_END_EXCEL_ROW.\n// Remember:\n//   allRows[0] = Excel row 2\n//   allRows[1] = Excel row 3\n// So Excel row N (>=2) -> allRows[N - 2]\nconst dataStartExcelRow = HEADER_END_EXCEL_ROW + 1;\nconst dataStartIdxInAllRows = Math.max(0, dataStartExcelRow - 2);\nconst dataRows = allRows.slice(dataStartIdxInAllRows);\n\n// ---------------------------------------------------------------------\n// 2) Build combined header text per column by concatenating header rows\n//    - Skip empty cells and any \"empty\" / \"__EMPTY...\" values\n// ---------------------------------------------------------------------\nconst combinedHeaders = colKeys.map((colKey, idx) => {\n  const parts = [];\n\n  for (const hRow of headerRows) {\n    const value = hRow[colKey];\n\n    if (value === undefined || value === null) {\n      continue;\n    }\n\n    const v = String(value).trim();\n    if (!v) {\n      // blank cell\n      continue;\n    }\n\n    const upper = v.toUpperCase();\n\n    // Skip placeholders like \"empty\", \"__EMPTY\", \"__EMPTY_1\", etc.\n    if (upper === 'EMPTY' || upper.startsWith('__EMPTY')) {\n      continue;\n    }\n\n    parts.push(v);\n  }\n\n  // If no non-empty header parts, fall back to a neutral column name\n  // (no \"empty\" anywhere)\n  if (parts.length === 0) {\n    return `Column_${idx + 1}`;\n  }\n\n  // Join meaningful header parts with a space\n  // (Change to ' - ' if you prefer \"A - B\" style)\n  return parts.join(' ');\n});\n\n// ---------------------------------------------------------------------\n// 3) Handle duplicate headers: add _dup, _dup2, _dup3, ...\n// ---------------------------------------------------------------------\nconst headerCounts = {};\nconst finalHeaders = combinedHeaders.map(h => {\n  const base = h || 'Column';\n\n  headerCounts[base] = (headerCounts[base] || 0) + 1;\n  const count = headerCounts[base];\n\n  if (count === 1) return base;           // first occurrence\n  if (count === 2) return `${base}_dup`;  // second occurrence\n  return `${base}_dup${count - 1}`;       // third+ occurrence\n});\n\n// ---------------------------------------------------------------------\n// 4) Build cleaned data rows using the final header names\n//    - Column order is kept the same because we always use colKeys order\n// ---------------------------------------------------------------------\nconst outputItems = dataRows.map(row => {\n  const out = {};\n  colKeys.forEach((colKey, idx) => {\n    const headerName = finalHeaders[idx];\n    out[headerName] = row[colKey];\n  });\n  return { json: out };\n});\n\nreturn outputItems;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        0
+      ],
+      "id": "b3487187-7398-48dc-828e-3660616e2624",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        140
+      ],
+      "id": "b4cc55bc-97b5-4fad-8c31-2569ca486716",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "fromEmail": "rconcadoro@viprsolutions.com",
+        "toEmail": "rconcadoro@viprsolutions.com",
+        "subject": "Output",
+        "html": "=<div style=\"font-family: Arial; padding: 20px;\">\n  <h2 style=\"color: #ff4da6;\">🎉 File Processed Successfully!</h2>\n\n  <p>Your uploaded file has been cleaned and processed using your \"\n     <strong>multi-row header</strong>\" configuration.</p>\n\n  <h3 style=\"color: #ff4da6;\">Cleaned Column Headers:</h3>\n\n  <div style=\"background: #ffe3f1; padding: 10px; border-radius: 6px;\">\n    {{ $json.finalHeaders }}\n  </div>\n\n  <br>\n\n  <h3 style=\"color: #ff4da6;\">First few rows of cleaned data:</h3>\n\n  <pre style=\"background: #fff0f8; padding: 10px; border-radius: 6px;\">\n{{ JSON.stringify($json, null, 2) }}\n  </pre>\n\n  <p style=\"color: #ff4da6;\">✔ Success – everything looks pretty in pink!</p>\n</div>\n",
+        "options": {
+          "attachments": "=Binary Property: cleanFile"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        -60
+      ],
+      "id": "6b158c8e-7fae-4731-980e-86efac3c27b4",
+      "name": "Send Email",
+      "webhookId": "235b44e6-e7b9-4530-9602-7f9d5d3489b7",
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a6dcfa6b-2bcb-4602-ba17-832eebed9192",
+  "triggerCount": 0,
+  "tags": []
+}
